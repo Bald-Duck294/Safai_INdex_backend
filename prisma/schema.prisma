@@ -76,6 +76,8 @@ model location_types {
   locations            locations[]
 }
 
+
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model review {
   id            BigInt          @id @default(autoincrement())
