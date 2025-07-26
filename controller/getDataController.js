@@ -52,12 +52,8 @@ export async function getUser(req, res) {
 // };
 
 export const getAllToilets = async (req, res) => {
-  console.log("in all washrooms");
   try {
-    const toiletTypeId = BigInt(4);
-
     const allLocations = await prisma.locations.findMany({
-      where: { type_id: toiletTypeId },
       include: {
         hygiene_scores: {
           orderBy: { inspected_at: "desc" },
@@ -79,7 +75,7 @@ export const getAllToilets = async (req, res) => {
       },
     });
 
-    // Group ratings by site_id
+    // Group user ratings by site
     const reviewsBySite = {};
     allReviews.forEach((r) => {
       if (!reviewsBySite[r.site_id]) reviewsBySite[r.site_id] = [];
@@ -89,24 +85,16 @@ export const getAllToilets = async (req, res) => {
     const result = allLocations.map((loc) => {
       const userRatings = reviewsBySite[Number(loc.id)] || [];
 
+      // Hygiene score → rating out of 10
       const hygieneScore = loc.hygiene_scores[0]?.score ?? null;
-      const hygieneRatingMapped =
-        hygieneScore !== null
-          ? hygieneScore >= 100
-            ? 5
-            : hygieneScore >= 80
-            ? 4
-            : hygieneScore >= 60
-            ? 3
-            : hygieneScore >= 40
-            ? 2
-            : 1
-          : null;
+      const hygieneRating =
+        hygieneScore !== null ? Number(hygieneScore) / 10 : null;
 
       const allRatings = [
         ...userRatings,
-        ...(hygieneRatingMapped !== null ? [hygieneRatingMapped] : []),
+        ...(hygieneRating !== null ? [hygieneRating] : []),
       ];
+
       const ratingCount = allRatings.length;
       const averageRating =
         ratingCount > 0
@@ -124,6 +112,7 @@ export const getAllToilets = async (req, res) => {
       };
     });
 
+    console.log(result , "result");
     res.json(result);
   } catch (err) {
     console.error(err);
@@ -268,9 +257,17 @@ export const getToiletById = async (req, res) => {
 // };
 
 export const getZonesWithToilets = async (req, res) => {
+  console.log("old zones");
   try {
     // Fetch all zones (platforms or floors)
-    const ZONE_TYPE_IDS = [BigInt(5), BigInt(7) , BigInt(2) , BigInt(3) , BigInt(6)]; // Platform & Floor
+    const ZONE_TYPE_IDS = [
+      BigInt(5),
+      BigInt(7),
+      BigInt(2),
+      BigInt(3),
+      BigInt(6),
+      BigInt(11),
+    ]; // Platform & Floor
 
     const zones = await prisma.locations.findMany({
       where: {
@@ -345,4 +342,347 @@ export const getZonesWithToilets = async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Error fetching zones and toilets" });
   }
+};
+
+export const createLocation = async (req, res) => {
+  try {
+    const { name, parent_id, type_id, latitude, longitude, options } = req.body;
+
+    console.log(
+      name,
+      parent_id,
+      type_id,
+      latitude,
+      longitude,
+      options,
+      "all data"
+    );
+    // Basic validation
+    if (!name || !type_id) {
+      return res.status(400).json({ error: "Name and typeId are required." });
+    }
+
+    // Insert into DB
+    const newLocation = await prisma.locations.create({
+      data: {
+        name,
+        parent_id: parent_id ? BigInt(parent_id) : null,
+        company_id: BigInt(2),
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
+        metadata: {},
+        // Legacy, you mentioned backend should handle it
+        type_id: BigInt(type_id),
+        options: options ?? {},
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Location added successfully.",
+      data: {
+        ...newLocation,
+        id: newLocation.id.toString(), // convert BigInt to string
+        parent_id: newLocation.parent_id?.toString() || null,
+        type_id: newLocation.type_id?.toString() || null,
+        company_id: newLocation.company_id?.toString() || null,
+      },
+    });
+  } catch (err) {
+    console.error("Error creating location:", err);
+    res.status(500).json({ error: "Failed to create location." });
+  }
+};
+
+////////////////////// new apis /////////////////////
+
+// Enhanced backend API controller for location grouping
+// export const getZonesWithToilets = async (req, res) => {
+//   console.log('this is getting called')
+//   try {
+//     const { groupBy = 'zone', showCompanyZones = true } = req.query;
+
+//     // Define type IDs
+//     const ZONE_TYPE_IDS = [BigInt(5), BigInt(7), BigInt(2), BigInt(3), BigInt(6)];
+//     const TOILET_TYPE_ID = BigInt(4);
+
+//     if (groupBy === 'company') {
+//       return await getLocationsByCompany(req, res);
+//     } else if (groupBy === 'type') {
+//       return await getLocationsByType(req, res);
+//     } else {
+//       console.log('here');
+//       return await getLocationsByZone(req, res, showCompanyZones);
+//     }
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Error fetching zones and toilets" });
+//   }
+// };
+
+// Group by zones (original functionality with company option)
+const getLocationsByZone = async (req, res, showCompanyZones) => {
+  const ZONE_TYPE_IDS = [BigInt(5), BigInt(7), BigInt(2), BigInt(3), BigInt(6)];
+  const TOILET_TYPE_ID = BigInt(4);
+
+  const zones = await prisma.locations.findMany({
+    where: {
+      type_id: { in: ZONE_TYPE_IDS },
+    },
+    select: {
+      id: true,
+      name: true,
+      type_id: true,
+      company_id: true,
+      companies: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!zones.length) return res.json([]);
+
+  const zoneIds = zones.map((z) => z.id);
+
+  const toilets = await prisma.locations.findMany({
+    where: {
+      type_id: TOILET_TYPE_ID,
+      parent_id: { in: zoneIds },
+    },
+    select: {
+      id: true,
+      name: true,
+      parent_id: true,
+      company_id: true,
+      latitude: true,
+      longitude: true,
+      hygiene_scores: {
+        orderBy: { inspected_at: "desc" },
+        take: 1,
+        select: { image_url: true },
+      },
+    },
+  });
+
+  if (showCompanyZones === "true") {
+    // Group by company, then by zone
+    const companiesMap = {};
+
+    zones.forEach((zone) => {
+      const companyId = zone.company_id?.toString() || "no-company";
+      const companyName = zone.companies?.name || "No Company";
+
+      if (!companiesMap[companyId]) {
+        companiesMap[companyId] = {
+          id: companyId,
+          name: companyName,
+          zones: [],
+          totalToilets: 0,
+        };
+      }
+    });
+
+    // Group toilets by zone
+    const toiletsByZone = {};
+    toilets.forEach((toilet) => {
+      const zoneId = toilet.parent_id.toString();
+      if (!toiletsByZone[zoneId]) toiletsByZone[zoneId] = [];
+
+      toiletsByZone[zoneId].push({
+        id: toilet.id.toString(),
+        name: toilet.name,
+        image_url: toilet.hygiene_scores[0]?.image_url || null,
+        latitude: toilet.latitude,
+        longitude: toilet.longitude,
+      });
+    });
+
+    // Attach toilets to zones and zones to companies
+    zones.forEach((zone) => {
+      const companyId = zone.company_id?.toString() || "no-company";
+      const zoneToilets = toiletsByZone[zone.id.toString()] || [];
+
+      companiesMap[companyId].zones.push({
+        id: zone.id.toString(),
+        name: zone.name,
+        type_id: zone.type_id.toString(),
+        children: zoneToilets,
+      });
+
+      companiesMap[companyId].totalToilets += zoneToilets.length;
+    });
+
+    return res.json(Object.values(companiesMap));
+  } else {
+    // Original zone grouping without company grouping
+    const toiletsByZone = {};
+    toilets.forEach((toilet) => {
+      const zoneId = toilet.parent_id.toString();
+      if (!toiletsByZone[zoneId]) toiletsByZone[zoneId] = [];
+
+      toiletsByZone[zoneId].push({
+        id: toilet.id.toString(),
+        name: toilet.name,
+        image_url: toilet.hygiene_scores[0]?.image_url || null,
+        latitude: toilet.latitude,
+        longitude: toilet.longitude,
+      });
+    });
+
+    const result = zones.map((zone) => ({
+      id: zone.id.toString(),
+      name: zone.name,
+      type_id: zone.type_id.toString(),
+      company_name: zone.companies?.name || "No Company",
+      children: toiletsByZone[zone.id.toString()] || [],
+    }));
+
+    return res.json(result);
+  }
+};
+
+// Group by company
+const getLocationsByCompany = async (req, res) => {
+  // const TOILET_TYPE_ID = BigInt(4);
+
+  // Get all toilets with their company information
+  const toilets = await prisma.locations.findMany({
+    where: {
+      // type_id: TOILET_TYPE_ID,
+      latitude: { not: null },
+      longitude: { not: null },
+    },
+    select: {
+      id: true,
+      name: true,
+      company_id: true,
+      latitude: true,
+      longitude: true,
+      companies: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      hygiene_scores: {
+        orderBy: { inspected_at: "desc" },
+        take: 1,
+        select: { image_url: true },
+      },
+    },
+  });
+
+  // Group toilets by company
+  const companiesMap = {};
+  toilets.forEach((toilet) => {
+    const companyId = toilet.company_id?.toString() || "no-company";
+    const companyName = toilet.companies?.name || "No Company";
+
+    if (!companiesMap[companyId]) {
+      companiesMap[companyId] = {
+        id: companyId,
+        name: companyName,
+        type_id: "company",
+        children: [],
+      };
+    }
+
+    companiesMap[companyId].children.push({
+      id: toilet.id.toString(),
+      name: toilet.name,
+      image_url: toilet.hygiene_scores[0]?.image_url || null,
+      latitude: toilet.latitude,
+      longitude: toilet.longitude,
+    });
+  });
+
+  return res.json(Object.values(companiesMap));
+};
+
+// Group by hierarchical type structure
+const getLocationsByType = async (req, res) => {
+  const TOILET_TYPE_ID = BigInt(4);
+
+  // Start from Nagpur (assuming it has parent_id: null and is the root)
+  const rootLocation = await prisma.locations.findFirst({
+    where: {
+      name: { contains: "Nagpur", mode: "insensitive" },
+      parent_id: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      type_id: true,
+    },
+  });
+
+  if (!rootLocation) {
+    return res.status(404).json({ message: "Nagpur root location not found" });
+  }
+
+  // Build hierarchical structure
+  const buildHierarchy = async (parentId, level = 0) => {
+    // Get direct children of this parent
+    const children = await prisma.locations.findMany({
+      where: {
+        parent_id: parentId,
+      },
+      select: {
+        id: true,
+        name: true,
+        type_id: true,
+        latitude: true,
+        longitude: true,
+        hygiene_scores: {
+          orderBy: { inspected_at: "desc" },
+          take: 1,
+          select: { image_url: true },
+        },
+      },
+    });
+
+    const result = [];
+
+    for (const child of children) {
+      if (child.type_id === TOILET_TYPE_ID) {
+        // This is a toilet - leaf node
+        result.push({
+          id: child.id.toString(),
+          name: child.name,
+          type_id: child.type_id.toString(),
+          latitude: child.latitude,
+          longitude: child.longitude,
+          image_url: child.hygiene_scores[0]?.image_url || null,
+          isToilet: true,
+        });
+      } else {
+        // This is a zone/area - recursive call to get its children
+        const grandChildren = await buildHierarchy(child.id, level + 1);
+        result.push({
+          id: child.id.toString(),
+          name: child.name,
+          type_id: child.type_id.toString(),
+          children: grandChildren,
+          isToilet: false,
+        });
+      }
+    }
+
+    return result;
+  };
+
+  const hierarchy = await buildHierarchy(rootLocation.id);
+
+  return res.json([
+    {
+      id: rootLocation.id.toString(),
+      name: rootLocation.name,
+      type_id: rootLocation.type_id.toString(),
+      children: hierarchy,
+      isToilet: false,
+    },
+  ]);
 };

@@ -55,6 +55,7 @@ model locations {
   created_at      DateTime?        @default(now()) @db.Timestamp(6)
   updated_at      DateTime?        @default(now()) @db.Timestamp(6)
   type_id         BigInt?
+  options         Json?            @default("{}")
   hygiene_scores  hygiene_scores[]
   companies       companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   locations       locations?       @relation("locationsTolocations", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -70,13 +71,12 @@ model location_types {
   sort_order           Int?
   created_at           DateTime?        @default(now()) @db.Timestamp(6)
   updated_at           DateTime?        @default(now()) @db.Timestamp(6)
+  is_toilet            Boolean?
   companies            companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   location_types       location_types?  @relation("location_typesTolocation_types", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_location_types location_types[] @relation("location_typesTolocation_types")
   locations            locations[]
 }
-
-
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model review {
@@ -121,6 +121,17 @@ model users {
   hygiene_scores hygiene_scores[]
   sessions       sessions[]
   companies      companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model configurations {
+  id          BigInt   @id @default(autoincrement())
+  name        String   @unique @db.VarChar(255)
+  description Json?
+  company_id  BigInt?
+  is_active   Boolean  @default(false)
+  notes       String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
 }
 
 enum user_role {
