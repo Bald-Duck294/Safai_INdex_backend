@@ -162,12 +162,11 @@ clean_review_Router.post("/", upload.array("images", 5), async (req, res) => {
 
     console.log(task_ids, Array.isArray(task_ids), "taks ids");
     const parsedTaskIds = Array.isArray(task_ids)
-      ? task_ids // If task_ids is already an array, use it directly
+      ? task_ids.map((id) => Number(id)) // Convert each element to a number
       : task_ids
-      ? task_ids.split(",").map((id) => parseInt(id.trim()))
+      ? task_ids.split(",").map((id) => Number(id.trim())) // Split string and convert to numbers
       : [];
-
-      console.log(parsedTaskIds , "parsed ids");
+    console.log(parsedTaskIds);
     const imageFilenames = req.files.map((file) => file.filename);
     // const imageFilenames = ["image1.jpg", "image2.jpg"];
 
