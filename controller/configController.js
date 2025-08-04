@@ -1,53 +1,79 @@
 import prisma from "../config/prismaClient.mjs";
 
-
 // '/api/configurations/:name'
- export async function getConfiguration (req, res)  {
+// controller/configController.js
 
-    console.log('in configuratinss');
-    const { name } = req.params;
-    console.log(`Fetching configuration for: ${name}`);
+// Get configuration by Id
+export async function getConfigurationById(req, res) {
+  const { id } = req.params;
+  console.log(id, "id from the ");
 
-    try {
-        let config = await prisma.configurations.findUnique({
-            where: { name },
-        });
+  if (!id) {
+    return res
+      .status(400)
+      .json({ message: "Missing 'id' in request parameters." });
+  }
 
-        // If 'Toilet Features' is requested and doesn't exist, create and seed it.
-        if (!config && name === 'Toilet Features') {
-            console.log("'Toilet Features' configuration not found. Creating it now...");
-            const toiletFeaturesDescription = [
-                { key: "isHandicapAccessible", label: "Handicap Accessible", category: "Accessibility" },
-                { key: "isStrictlyForHandicap", label: "Strictly for Handicap", category: "Accessibility" },
-                { key: "isPaid", label: "Paid Entry", category: "Access" },
-                { key: "requiresKey", label: "Requires Key", category: "Access" },
-                { key: "accessType", label: "Access Type", category: "Access", type: "radio", options: ["Men", "Women", "Unisex"] },
-                { key: "hasBabyChangingStation", label: "Baby Changing Station", category: "Features" },
-                { key: "hasSanitaryProducts", label: "Sanitary Products Available", category: "Features" },
-            ];
+  try {
+    console.log(`Fetching configuration for ID: ${id}`);
 
-            config = await prisma.configurations.create({
-                data: {
-                    name: 'Toilet Features',
-                    description: toiletFeaturesDescription,
-                },
-            });
-            console.log("'Toilet Features' configuration created successfully.");
-        }
+    const config = await prisma.configurations.findUnique({
+      where: {
+        id: BigInt(id), // Ensure it's a BigInt if your DB uses it
+      },
+    });
 
-        if (config) {
-            // Ensure BigInts are converted to strings for JSON serialization
-            const safeConfig = {
-                ...config,
-                id: config.id.toString(),
-            };
-            res.json(safeConfig);
-        } else {
-            res.status(404).json({ message: `Configuration with name '${name}' not found.` });
-        }
-
-    } catch (error) {
-        console.error("Error fetching or creating configuration:", error);
-        res.status(500).json({ message: "Internal server error." });
+    if (!config) {
+      return res
+        .status(404)
+        .json({ message: `Configuration with id '${id}' not found.` });
     }
-};
+
+    const safeConfig = {
+      ...config,
+      id: config.id.toString(),
+    };
+
+    res.json(safeConfig);
+  } catch (error) {
+    console.error("Error fetching configuration:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+}
+
+// get the cofiguration by name
+export async function getConfigurationByName(req, res) {
+  const { name } = req.params;
+  console.log(name, "name from the request");
+
+  if (!name) {
+    return res
+      .status(400)
+      .json({ message: "Missing 'name' in request parameters." });
+  }
+
+  try {
+    console.log(`Fetching configuration with name: ${name}`);
+
+    const config = await prisma.configurations.findUnique({
+      where: {
+        name: name, // Use name directly (no BigInt!)
+      },
+    });
+
+
+    if (!config) {
+      return res
+        .status(404)
+        .json({ message: `Configuration with name '${name}' not found.` });
+    }
+
+    res.json({
+        ...config,
+        id:config?.id.toString()
+    }); // name is already a string, no need for conversion
+  } catch (error) {
+    console.error("Error fetching configuration:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+}

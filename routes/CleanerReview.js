@@ -82,44 +82,106 @@ clean_review_Router.get("/", async (req, res) => {
 //   }
 // });
 
+// clean_review_Router.post("/", upload.array("images", 5), async (req, res) => {
+//   console.log("post request made");
+//   try {
+//     const {
+//       name,
+//       phone,
+//       images,
+//       site_id,
+//       remarks,
+//       latitude,
+//       longitude,
+//       address,
+//     } = req.body;
+
+//     console.log(req.body , "body data")
+//     console.log(req.files , "files")
+//     const imageFilenames = req.files.map(file => file.filename);
+//     // console.log(
+//     //   name,
+//     //   phone,
+//     //   images,
+//     //   remarks,
+//     //   latitude,
+//     //   longitude,
+//     //   address,
+//     //   "image"
+//     // );
+
+//     const review = await prisma.cleaner_review.create({
+//       data: {
+//         name,
+//         phone,
+//         site_id: BigInt(1),
+//         remarks,
+//         latitude: parseFloat(latitude),
+//         longitude: parseFloat(longitude),
+//         address,
+//         images:imageFilenames ,
+//       },
+//     });
+
+//     const serializedReview = {
+//       ...review,
+//       id: review.id.toString(),
+//       site_id: review.site_id.toString(),
+//       created_at: review.created_at.toISOString(),
+//       updated_at: review.updated_at.toISOString(),
+//     };
+
+//     res.status(201).json(serializedReview);
+//   } catch (err) {
+//     console.error("Create Review Error:", err);
+//     res.status(400).json({
+//       error: "Failed to create review",
+//       detail: {
+//         message: err.message,
+//         name: err.name,
+//         stack: err.stack,
+//       },
+//     });
+//   }
+// });
+
 clean_review_Router.post("/", upload.array("images", 5), async (req, res) => {
   console.log("post request made");
   try {
     const {
       name,
       phone,
-      images,
       site_id,
       remarks,
       latitude,
       longitude,
       address,
+      user_id,
+      task_ids, // expected as comma-separated string like "1,5,7"
     } = req.body;
 
-    console.log(req.body , "body data")
-    console.log(req.files , "files")
-    const imageFilenames = req.files.map(file => file.filename);
-    // console.log(
-    //   name,
-    //   phone,
-    //   images,
-    //   remarks,
-    //   latitude,
-    //   longitude,
-    //   address,
-    //   "image"
-    // );
+    console.log(task_ids, Array.isArray(task_ids), "taks ids");
+    const parsedTaskIds = Array.isArray(task_ids)
+      ? task_ids // If task_ids is already an array, use it directly
+      : task_ids
+      ? task_ids.split(",").map((id) => parseInt(id.trim()))
+      : [];
+
+    const imageFilenames = req.files.map((file) => file.filename);
+    // const imageFilenames = ["image1.jpg", "image2.jpg"];
 
     const review = await prisma.cleaner_review.create({
       data: {
         name,
         phone,
-        site_id: BigInt(1),
+        site_id: BigInt(site_id || 1),
+        user_id: BigInt(user_id || 1), // fallback if not sent
+        task_id: parsedTaskIds,
         remarks,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         address,
-        images:imageFilenames ,
+        images: imageFilenames,
       },
     });
 
@@ -127,6 +189,7 @@ clean_review_Router.post("/", upload.array("images", 5), async (req, res) => {
       ...review,
       id: review.id.toString(),
       site_id: review.site_id.toString(),
+      user_id: review.user_id.toString(),
       created_at: review.created_at.toISOString(),
       updated_at: review.updated_at.toISOString(),
     };

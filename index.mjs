@@ -1,5 +1,6 @@
 import express from "express";
-import getRouter from "./routes/routes.js";
+// import getRouter from "./routes/routes.js";
+import getLocationRoutes from "./routes/LocationRoutes.js";
 import cors from "cors";
 import location_types_router from "./routes/locationTypes.js";
 import configRouter from "./routes/configRoutes.js";
@@ -11,7 +12,7 @@ app.use(express.json());
 
 app.use(cors());
 
-app.use("/api", getRouter);
+app.use("/api", getLocationRoutes);
 app.use("/api", location_types_router);
 app.use("/api", configRouter);
 app.use("/cleaner-reviews", clean_review_Router);

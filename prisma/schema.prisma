@@ -56,6 +56,7 @@ model locations {
   updated_at      DateTime?        @default(now()) @db.Timestamp(6)
   type_id         BigInt?
   options         Json?            @default("{}")
+  lang_preference String?
   hygiene_scores  hygiene_scores[]
   companies       companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   locations       locations?       @relation("locationsTolocations", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -146,6 +147,8 @@ model cleaner_review {
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
   site_id    BigInt?
+  user_id    BigInt?
+  task_id    Int[]
 }
 
 model user_review {

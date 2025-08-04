@@ -1,9 +1,13 @@
 import express from "express";
 
-import { getConfiguration } from "../controller/configController.js";
+import {
+  getConfigurationById,
+  getConfigurationByName,
+} from "../controller/configController.js";
 
 const configRouter = express.Router();
 
-configRouter.get('/configurations/:name' , getConfiguration);
+configRouter.get("/configurations/:name", getConfigurationByName);
+configRouter.get("/configurations/id/:id", getConfigurationById);
 
 export default configRouter;
