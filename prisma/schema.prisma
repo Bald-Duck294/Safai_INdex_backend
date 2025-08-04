@@ -167,6 +167,17 @@ model user_review {
   latitude    Float?
 }
 
+model cleaner_user {
+  id        BigInt    @id @default(autoincrement())
+  name      String    @db.VarChar
+  email     String?   @unique @db.VarChar
+  phone     String    @unique @db.VarChar
+  password  String    @db.VarChar
+  age       Int?
+  createdAt DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime? @default(now()) @db.Timestamptz(6)
+}
+
 enum user_role {
   superadmin
   admin
