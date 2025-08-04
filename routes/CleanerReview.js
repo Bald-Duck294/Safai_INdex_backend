@@ -167,6 +167,7 @@ clean_review_Router.post("/", upload.array("images", 5), async (req, res) => {
       ? task_ids.split(",").map((id) => parseInt(id.trim()))
       : [];
 
+      console.log(parsedTaskIds , "parsed ids");
     const imageFilenames = req.files.map((file) => file.filename);
     // const imageFilenames = ["image1.jpg", "image2.jpg"];
 
