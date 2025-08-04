@@ -23,11 +23,19 @@ clean_review_Router.get("/", async (req, res) => {
 
     console.log(reviews, "data");
 
-    const serialized = reviews.map((r) => ({
-      ...r,
-      id: r.id.toString(),
-      site_id: r.site_id ? r.site_id.toString() : null,
-    }));
+    const serialized = reviews.map((r) => {
+      const safeReview = {};
+
+      for (const [key, value] of Object.entries(r)) {
+        if (typeof value === "bigint") {
+          safeReview[key] = value.toString(); // Convert BigInt to string
+        } else {
+          safeReview[key] = value;
+        }
+      }
+
+      return safeReview;
+    });
 
     res.json(serialized);
   } catch (err) {
@@ -42,6 +50,7 @@ clean_review_Router.get("/", async (req, res) => {
     });
   }
 });
+
 
 // clean_review_Router.post('/', upload.array('images', 5), async (req, res) => {
 //   try {
