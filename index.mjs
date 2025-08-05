@@ -4,7 +4,8 @@ import getLocationRoutes from "./routes/LocationRoutes.js";
 import cors from "cors";
 import location_types_router from "./routes/locationTypes.js";
 import configRouter from "./routes/configRoutes.js";
-import clean_review_Router from "./routes/CleanerReview.js";
+// import clean_review_Router from "./routes/CleanerReviewRoutes.js";
+import clean_review_Router from "./routes/CleanerReviewRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import loginRoute from "./routes/loginApi.js";
 const app = express();
@@ -17,7 +18,7 @@ app.use("/api", getLocationRoutes);
 app.use("/api", location_types_router);
 app.use("/api", configRouter);
 app.use("/api/", loginRoute);
-app.use("/cleaner-reviews", clean_review_Router);
+app.use("/api/cleaner-reviews", clean_review_Router);
 app.use("/uploads", express.static("uploads"));
 // app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use("/api/reviews", reviewRoutes);
