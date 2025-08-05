@@ -51,7 +51,6 @@ clean_review_Router.get("/", async (req, res) => {
   }
 });
 
-
 // clean_review_Router.post('/', upload.array('images', 5), async (req, res) => {
 //   try {
 //     const { site_id, name, phone, remarks } = req.body;
@@ -169,6 +168,7 @@ clean_review_Router.post("/", upload.array("images", 5), async (req, res) => {
       task_ids, // expected as comma-separated string like "1,5,7"
     } = req.body;
 
+    console.log(req.body, "body ");
     console.log(task_ids, Array.isArray(task_ids), "taks ids");
     const parsedTaskIds = Array.isArray(task_ids)
       ? task_ids.map((id) => Number(id)) // Convert each element to a number
