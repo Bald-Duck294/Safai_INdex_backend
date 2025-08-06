@@ -52,6 +52,8 @@ export async function getUser(req, res) {
 // };
 
 export const getAllToilets = async (req, res) => {
+
+  console.log("get all toilets");
   try {
     const allLocations = await prisma.locations.findMany({
       include: {
