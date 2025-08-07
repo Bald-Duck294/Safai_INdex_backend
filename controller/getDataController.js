@@ -1,5 +1,5 @@
 import prisma from "../config/prismaClient.mjs";
-
+import db from '../db.js'
 export async function getUser(req, res) {
   try {
     const users = await prisma.users.findMany();
@@ -52,7 +52,6 @@ export async function getUser(req, res) {
 // };
 
 export const getAllToilets = async (req, res) => {
-
   console.log("get all toilets");
   try {
     const allLocations = await prisma.locations.findMany({
@@ -114,7 +113,7 @@ export const getAllToilets = async (req, res) => {
       };
     });
 
-    console.log(result , "result");
+    console.log(result, "result");
     res.json(result);
   } catch (err) {
     console.error(err);
@@ -195,68 +194,6 @@ export const getToiletById = async (req, res) => {
     res.status(500).send("Error fetching toilet by ID");
   }
 };
-
-// export const getZonesWithToilets = async (req, res) => {
-//   try {
-//     const ZONE_TYPE_ID = 8;    // zone
-//     const TOILET_TYPE_ID = 4;  // toilet
-
-//     // Fetch all zones
-//     const zones = await prisma.locations.findMany({
-//       where: { type_id: BigInt(ZONE_TYPE_ID) },
-//       select: {
-//         id: true,
-//         name: true,
-//         latitude: true,
-//         longitude: true
-//       }
-//     });
-
-//     // Get all toilets under all zones
-//     const zoneIds = zones.map(z => z.id);
-
-//     const toilets = await prisma.locations.findMany({
-//       where: {
-//         type_id: BigInt(TOILET_TYPE_ID),
-//         parent_id: { in: zoneIds }
-//       },
-//       select: {
-//         id: true,
-//         name: true,
-//         latitude: true,
-//         longitude: true,
-//         parent_id: true
-//       }
-//     });
-
-//     // Group toilets under their parent zones
-//     const toiletsByZone = {};
-//     toilets.forEach((toilet) => {
-//       const parentId = toilet.parent_id?.toString();
-//       if (!toiletsByZone[parentId]) toiletsByZone[parentId] = [];
-//       toiletsByZone[parentId].push({
-//         id: toilet.id.toString(),
-//         name: toilet.name,
-//         latitude: toilet.latitude?.toString(),
-//         longitude: toilet.longitude?.toString()
-//       });
-//     });
-
-//     // Prepare final result
-//     const result = zones.map((zone) => ({
-//       id: zone.id.toString(),
-//       name: zone.name,
-//       latitude: zone.latitude?.toString(),
-//       longitude: zone.longitude?.toString(),
-//       children: toiletsByZone[zone.id.toString()] || []
-//     }));
-
-//     res.json(result);
-//   } catch (err) {
-//     console.error('Error fetching zones:', err);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// };
 
 export const getZonesWithToilets = async (req, res) => {
   console.log("old zones");
@@ -396,31 +333,7 @@ export const createLocation = async (req, res) => {
   }
 };
 
-////////////////////// new apis /////////////////////
-
-// Enhanced backend API controller for location grouping
-// export const getZonesWithToilets = async (req, res) => {
-//   console.log('this is getting called')
-//   try {
-//     const { groupBy = 'zone', showCompanyZones = true } = req.query;
-
-//     // Define type IDs
-//     const ZONE_TYPE_IDS = [BigInt(5), BigInt(7), BigInt(2), BigInt(3), BigInt(6)];
-//     const TOILET_TYPE_ID = BigInt(4);
-
-//     if (groupBy === 'company') {
-//       return await getLocationsByCompany(req, res);
-//     } else if (groupBy === 'type') {
-//       return await getLocationsByType(req, res);
-//     } else {
-//       console.log('here');
-//       return await getLocationsByZone(req, res, showCompanyZones);
-//     }
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: "Error fetching zones and toilets" });
-//   }
-// };
+////////////////////// new get locations with zone apis /////////////////////
 
 // Group by zones (original functionality with company option)
 const getLocationsByZone = async (req, res, showCompanyZones) => {
@@ -688,3 +601,83 @@ const getLocationsByType = async (req, res) => {
     },
   ]);
 };
+
+/////////////////////////////// Get Near by Location \\\\\\\\\\\\\\\\\\\\\\\\\
+
+export const getNearbyLocations = async (req, res) => {
+  const { lat, lng, radius } = req.query;
+
+  if (!lat || !lng) {
+    return res.status(400).json({ error: "Missing lat or lng" });
+  }
+
+  const userLat = parseFloat(lat);
+  const userLng = parseFloat(lng);
+  const distance = parseFloat(radius || 1000); // default 1000 meters
+
+  try {
+   const result = await db.query(`
+    SELECT 
+      id,
+      name,
+      ST_AsText(geom) AS geo_location,
+      ST_Distance(
+        geom::geography,
+        ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
+      ) AS distance
+    FROM locations
+    WHERE ST_DWithin(
+      geom::geography,
+      ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
+      $3
+    )
+    ORDER BY distance ASC
+    LIMIT 50
+  `, [parseFloat(lng), parseFloat(lat), parseInt(radius)]);
+
+    // const updatedResults = result.map((item) => ({
+    //   ...item,
+    //   id:item.id.toString()
+    // }));
+    // console.log(result , "results");
+    // res.json(updatedResults);
+console.log(result , "data");
+    res.json(result)
+  } catch (error) {
+    console.error("Error fetching nearby locations:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+
+
+
+// app.get('/api/nearby', async (req, res) => {
+//   const { lat, lng, radius } = req.query;
+
+//   if (!lat || !lng || !radius) {
+//     return res.status(400).json({ error: 'Missing parameters' });
+//   }
+
+//   const result = await db.query(`
+//     SELECT 
+//       id,
+//       name,
+//       ST_AsText(geom) AS geo_location,
+//       ST_Distance(
+//         geom::geography,
+//         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
+//       ) AS distance
+//     FROM locations
+//     WHERE ST_DWithin(
+//       geom::geography,
+//       ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
+//       $3
+//     )
+//     ORDER BY distance ASC
+//     LIMIT 50
+//   `, [parseFloat(lng), parseFloat(lat), parseInt(radius)]);
+
+//   res.json(result.rows);
+// });
