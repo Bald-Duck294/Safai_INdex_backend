@@ -45,23 +45,26 @@ model hygiene_scores {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model locations {
-  id              BigInt           @id @default(autoincrement())
-  name            String           @db.VarChar(255)
+  id              BigInt                   @id @default(autoincrement())
+  name            String                   @db.VarChar(255)
   parent_id       BigInt?
   company_id      BigInt?
-  latitude        Decimal?         @db.Decimal(10, 8)
-  longitude       Decimal?         @db.Decimal(11, 8)
-  metadata        Json?            @db.Json
-  created_at      DateTime?        @default(now()) @db.Timestamp(6)
-  updated_at      DateTime?        @default(now()) @db.Timestamp(6)
+  latitude        Float?
+  longitude       Float?
+  metadata        Json?                    @db.Json
+  created_at      DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?                @default(now()) @db.Timestamp(6)
   type_id         BigInt?
-  options         Json?            @default("{}")
-  lang_preference String?
+  options         Json?                    @default("{}")
+  lang_preference String?                  @db.VarChar(255)
+  geom            Unsupported("geometry")?
   hygiene_scores  hygiene_scores[]
-  companies       companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  locations       locations?       @relation("locationsTolocations", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  other_locations locations[]      @relation("locationsTolocations")
-  location_types  location_types?  @relation(fields: [type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companies       companies?               @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  locations       locations?               @relation("locationsTolocations", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_locations locations[]              @relation("locationsTolocations")
+  location_types  location_types?          @relation(fields: [type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([geom], map: "idx_locations_geom", type: Gist)
 }
 
 model location_types {
@@ -109,26 +112,22 @@ model sessions {
   users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-
-
-
 model users {
   id             BigInt           @id @default(autoincrement())
-  name           String?           @db.VarChar(255)
-  email          String?           @unique @db.VarChar(255)
-  phone          String?           @db.VarChar(20)
-  password       String           @db.VarChar(255)
-  role_id        BigInt
+  name           String           @db.VarChar(255)
+  email          String           @unique @db.VarChar(255)
+  password       String
+  role           user_role
   company_id     BigInt?
   created_at     DateTime?        @default(now()) @db.Timestamp(6)
   updated_at     DateTime?        @default(now()) @db.Timestamp(6)
- activity_logs  activity_logs[]
+  phone          String?          @db.VarChar(15)
+  role_id        String?          @db.VarChar(15)
+  activity_logs  activity_logs[]
   hygiene_scores hygiene_scores[]
   sessions       sessions[]
   companies      companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
 }
-
 
 model configurations {
   id          BigInt   @id @default(autoincrement())
@@ -142,19 +141,17 @@ model configurations {
 }
 
 model cleaner_review {
-  id              BigInt    @id @default(autoincrement())
-  name            String
-  phone           String
-  remarks         String?
-  images          String[]
-  latitude        Float?
-  longitude       Float?
-  address         String?
-  created_at      DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
-  site_id         BigInt?
-  cleaner_user_id BigInt?
-  task_id         Int[]
+  id         BigInt    @id @default(autoincrement())
+  name       String
+  phone      String
+  remarks    String?
+  images     String[]
+  latitude   Float?
+  longitude  Float?
+  address    String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  site_id    BigInt?
 }
 
 model user_review {
@@ -173,6 +170,19 @@ model user_review {
   latitude    Float?
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
 
-
-
+enum user_role {
+  superadmin
+  admin
+  operator
+  inspector
+  user
+}
