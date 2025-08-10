@@ -209,7 +209,7 @@ export async function createCleanerReview(req, res) {
   : task_ids
   ? task_ids.split(",").map(id => String(id).trim())
   : [];
-  
+
     // Create review
     const review = await prisma.cleaner_review.create({
       data: {
@@ -224,8 +224,8 @@ export async function createCleanerReview(req, res) {
         task_id: parsedTaskIds,
         initial_comment,
         final_comment,
-        before_photos: beforePhotos,
-        after_photos: afterPhotos,
+        before_photo: beforePhotos,
+        after_photo: afterPhotos,
         status,
         images: "dummyImage.jpeg"
       }
