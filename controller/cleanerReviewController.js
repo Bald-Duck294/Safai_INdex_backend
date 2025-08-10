@@ -221,7 +221,9 @@ export async function createCleanerReview(req, res) {
         final_comment,
         before_photos: beforePhotos,
         after_photos: afterPhotos,
-        status
+        status,
+        images:"dummyIMage.jpeg"
+
       }
     });
 

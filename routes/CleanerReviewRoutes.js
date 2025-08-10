@@ -19,12 +19,18 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Routes
-clean_review_Router.get("/", getCleanerReview); // optional ?cleaner_user_id
-clean_review_Router.get("/:cleaner_user_id", getCleanerReviewsById);
-// clean_review_Router.post("/", upload.array("images", 5), createCleanerReview);
+// Debug middleware to log incoming field names before multer processes them
+const debugFields = (req, res, next) => {
+  req.on('data', (chunk) => {
+    console.log('Incoming chunk:', chunk.toString());
+  });
+  next();
+};
+
+
 clean_review_Router.post(
   "/",
+  debugFields,
   upload.fields([
     { name: "before_photos", maxCount: 5 },
     { name: "after_photos", maxCount: 5 }
@@ -32,5 +38,27 @@ clean_review_Router.post(
   createCleanerReview
 );
 
+
+// Routes
+clean_review_Router.get("/", getCleanerReview); // optional ?cleaner_user_id
+clean_review_Router.get("/:cleaner_user_id", getCleanerReviewsById);
+// clean_review_Router.post("/", upload.array("images", 5), createCleanerReview);
+// clean_review_Router.post(
+//   "/",
+//   upload.fields([
+//     { name: "before_photos", maxCount: 5 },
+//     { name: "after_photos", maxCount: 5 }
+//   ]),
+//   createCleanerReview
+// );
+clean_review_Router.post(
+  "/",
+  debugFields,
+  upload.fields([
+    { name: "before_photos", maxCount: 5 },
+    { name: "after_photos", maxCount: 5 }
+  ]),
+  createCleanerReview
+);
 
 export default clean_review_Router;
