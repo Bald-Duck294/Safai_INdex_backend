@@ -198,12 +198,18 @@ export async function createCleanerReview(req, res) {
       ? req.files.after_photos.map(file => file.filename)
       : [];
 
-    const parsedTaskIds = Array.isArray(task_ids)
-      ? task_ids.map(Number)
-      : task_ids
-      ? task_ids.split(",").map(id => Number(id.trim()))
-      : [];
+    // const parsedTaskIds = Array.isArray(task_ids)
+    //   ? task_ids.map(Number)
+    //   : task_ids
+    //   ? task_ids.split(",").map(id => Number(id.trim()))
+    //   : [];
 
+    const parsedTaskIds = Array.isArray(task_ids)
+  ? task_ids.map(id => String(id).trim())
+  : task_ids
+  ? task_ids.split(",").map(id => String(id).trim())
+  : [];
+  
     // Create review
     const review = await prisma.cleaner_review.create({
       data: {
