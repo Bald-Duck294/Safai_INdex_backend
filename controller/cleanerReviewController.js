@@ -169,7 +169,6 @@ export const getCleanerReviewsById = async (req, res) => {
 
 
 
-
 export async function createCleanerReview(req, res) {
   try {
     const {
@@ -190,14 +189,14 @@ export async function createCleanerReview(req, res) {
     console.log(req.body, "request body");
     console.log(req.files, "request files");
 
-    // Separate before and after files
-    const beforePhotos = req.files
-      .filter(file => file.fieldname === "before_photos")
-      .map(file => file.filename);
+    // Safe extraction from req.files object
+    const beforePhotos = Array.isArray(req.files?.before_photos)
+      ? req.files.before_photos.map(file => file.filename)
+      : [];
 
-    const afterPhotos = req.files
-      .filter(file => file.fieldname === "after_photos")
-      .map(file => file.filename);
+    const afterPhotos = Array.isArray(req.files?.after_photos)
+      ? req.files.after_photos.map(file => file.filename)
+      : [];
 
     const parsedTaskIds = Array.isArray(task_ids)
       ? task_ids.map(Number)
@@ -222,24 +221,20 @@ export async function createCleanerReview(req, res) {
         before_photos: beforePhotos,
         after_photos: afterPhotos,
         status,
-        images:"dummyIMage.jpeg"
-
+        images: "dummyImage.jpeg"
       }
     });
 
-    // Simulate AI scoring for AFTER photos
-    const hygieneScores = [];
-
+    // Simulate AI scoring only for AFTER photos
     afterPhotos.forEach((filename, index) => {
       setTimeout(async () => {
-        const simulatedScore = Math.floor(Math.random() * 41) + 60; // 60-100
+        const simulatedScore = Math.floor(Math.random() * 41) + 60; // 60–100
         const modelResponse = {
           status: "success",
           score: simulatedScore,
           timestamp: new Date().toISOString()
         };
 
-        // Store score in hygiene_scores table
         await prisma.hygiene_scores.create({
           data: {
             location_id: site_id ? BigInt(site_id) : null,
@@ -251,9 +246,8 @@ export async function createCleanerReview(req, res) {
           }
         });
 
-        hygieneScores.push(modelResponse);
         console.log(`AI processed image ${filename}:`, modelResponse);
-      }, 2000 * (index + 1)); // staggered simulation
+      }, 2000 * (index + 1));
     });
 
     res.status(201).json({
@@ -266,7 +260,7 @@ export async function createCleanerReview(req, res) {
     console.error("Create Review Error:", err);
     res.status(400).json({
       error: "Failed to create review",
-      detail: err
+      detail: err.message
     });
   }
 }
