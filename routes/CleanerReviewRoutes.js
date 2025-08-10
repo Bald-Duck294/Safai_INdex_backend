@@ -22,6 +22,15 @@ const upload = multer({ storage });
 // Routes
 clean_review_Router.get("/", getCleanerReview); // optional ?cleaner_user_id
 clean_review_Router.get("/:cleaner_user_id", getCleanerReviewsById);
-clean_review_Router.post("/", upload.array("images", 5), createCleanerReview);
+// clean_review_Router.post("/", upload.array("images", 5), createCleanerReview);
+clean_review_Router.post(
+  "/",
+  upload.fields([
+    { name: "before_photos", maxCount: 5 },
+    { name: "after_photos", maxCount: 5 }
+  ]),
+  createCleanerReview
+);
+
 
 export default clean_review_Router;
