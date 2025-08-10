@@ -205,10 +205,10 @@ export async function createCleanerReview(req, res) {
     //   : [];
 
     const parsedTaskIds = Array.isArray(task_ids)
-  ? task_ids.map(id => String(id).trim())
-  : task_ids
-  ? task_ids.split(",").map(id => String(id).trim())
-  : [];
+      ? task_ids.map(id => String(id).trim())
+      : task_ids
+        ? task_ids.split(",").map(id => String(id).trim())
+        : [];
 
     // Create review
     const review = await prisma.cleaner_review.create({
@@ -227,7 +227,11 @@ export async function createCleanerReview(req, res) {
         before_photo: beforePhotos,
         after_photo: afterPhotos,
         status,
-        images: "dummyImage.jpeg"
+        images: ["dummyImage.jpeg"],
+        status: status || "ongoing",
+        initial_comment: initial_comment || null,
+        final_comment: final_comment || null,
+
       }
     });
 
