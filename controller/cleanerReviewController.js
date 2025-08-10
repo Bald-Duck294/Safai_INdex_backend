@@ -235,6 +235,15 @@ export async function createCleanerReview(req, res) {
       }
     });
 
+    // Convert BigInt fields to strings for JSON
+    const serializedReview = {
+      ...review,
+      id: review.id?.toString(),
+      site_id: review.site_id?.toString(),
+      cleaner_user_id: review.cleaner_user_id?.toString()
+    };
+
+
     // Simulate AI scoring only for AFTER photos
     afterPhotos.forEach((filename, index) => {
       setTimeout(async () => {
@@ -260,9 +269,10 @@ export async function createCleanerReview(req, res) {
       }, 2000 * (index + 1));
     });
 
+    console.log(review, "review ");
     res.status(201).json({
       success: true,
-      review,
+      review: serializedReview,
       message: "Review created. AI processing after photos..."
     });
 
