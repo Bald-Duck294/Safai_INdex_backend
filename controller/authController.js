@@ -5,7 +5,7 @@ export const registerUser = async (req, res) => {
   const { name, email, phone, password, role_id, company_id, age , birthdate} = req.body;
   console.log("in register", req.body);
   // console.log(Object.keys(prisma.users), "prisma user");
-  console.log(prisma.users , "model users");
+  // console.log(prisma.users , "model users");
 
   if (!name || !phone || !password) {
     return res
