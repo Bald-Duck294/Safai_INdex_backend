@@ -43,8 +43,13 @@ export const loginUser = async (req, res) => {
   }
 
   try {
-    const user = await prisma.users.findUnique({ where: { phone } });
 
+    const user = await prisma.users.findFirst({
+  where: { phone },
+  orderBy: { createdAt: "desc" } // assuming you have a createdAt field
+});
+   // const user = await prisma.users.findUnique({ where: { phone } });
+console.log("user", user);
     if (!user) {
       return res.status(404).json({ error: "User  not found." });
     }
