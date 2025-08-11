@@ -56,11 +56,16 @@ export const getCleanerReviewsById = async (req, res) => {
       return safeReview;
     });
 
-    res.json(serialized);
+    res.json({
+      status: "success",
+      data: serialized,
+      message: "Data retrived Successfully!",
+    });
   } catch (err) {
     console.error("Fetch Reviews by ID Error:", err);
     res.status(500).json({
-      error: "Failed to fetch cleaner reviews by ID",
+      status: "error",
+      message: "Failed to fetch cleaner reviews by ID",
       detail: err,
     });
   }
@@ -165,10 +170,6 @@ export const getCleanerReviewsById = async (req, res) => {
 //   }
 // }
 
-
-
-
-
 export async function createCleanerReview(req, res) {
   try {
     const {
@@ -183,7 +184,7 @@ export async function createCleanerReview(req, res) {
       task_ids,
       initial_comment,
       final_comment,
-      status
+      status,
     } = req.body;
 
     console.log(req.body, "request body");
@@ -191,11 +192,11 @@ export async function createCleanerReview(req, res) {
 
     // Safe extraction from req.files object
     const beforePhotos = Array.isArray(req.files?.before_photos)
-      ? req.files.before_photos.map(file => file.filename)
+      ? req.files.before_photos.map((file) => file.filename)
       : [];
 
     const afterPhotos = Array.isArray(req.files?.after_photos)
-      ? req.files.after_photos.map(file => file.filename)
+      ? req.files.after_photos.map((file) => file.filename)
       : [];
 
     // const parsedTaskIds = Array.isArray(task_ids)
@@ -205,10 +206,10 @@ export async function createCleanerReview(req, res) {
     //   : [];
 
     const parsedTaskIds = Array.isArray(task_ids)
-      ? task_ids.map(id => String(id).trim())
+      ? task_ids.map((id) => String(id).trim())
       : task_ids
-        ? task_ids.split(",").map(id => String(id).trim())
-        : [];
+      ? task_ids.split(",").map((id) => String(id).trim())
+      : [];
 
     // Create review
     const review = await prisma.cleaner_review.create({
@@ -231,8 +232,7 @@ export async function createCleanerReview(req, res) {
         status: status || "ongoing",
         initial_comment: initial_comment || null,
         final_comment: final_comment || null,
-
-      }
+      },
     });
 
     // Convert BigInt fields to strings for JSON
@@ -240,9 +240,8 @@ export async function createCleanerReview(req, res) {
       ...review,
       id: review.id?.toString(),
       site_id: review.site_id?.toString(),
-      cleaner_user_id: review.cleaner_user_id?.toString()
+      cleaner_user_id: review.cleaner_user_id?.toString(),
     };
-
 
     // Simulate AI scoring only for AFTER photos
     afterPhotos.forEach((filename, index) => {
@@ -251,7 +250,7 @@ export async function createCleanerReview(req, res) {
         const modelResponse = {
           status: "success",
           score: simulatedScore,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
 
         await prisma.hygiene_scores.create({
@@ -261,8 +260,8 @@ export async function createCleanerReview(req, res) {
             details: { ai_status: modelResponse.status },
             image_url: `http://your-image-host.com/uploads/${filename}`,
             inspected_at: new Date(modelResponse.timestamp),
-            created_by: cleaner_user_id ? BigInt(cleaner_user_id) : null
-          }
+            created_by: cleaner_user_id ? BigInt(cleaner_user_id) : null,
+          },
         });
 
         console.log(`AI processed image ${filename}:`, modelResponse);
@@ -271,16 +270,16 @@ export async function createCleanerReview(req, res) {
 
     console.log(review, "review ");
     res.status(201).json({
-      success: true,
+      status: "success",
+      message: "Review created. AI processing after photos...",
       review: serializedReview,
-      message: "Review created. AI processing after photos..."
     });
-
   } catch (err) {
     console.error("Create Review Error:", err);
     res.status(400).json({
-      error: "Failed to create review",
-      detail: err.message
+      status: "error",
+      message: "Review created. AI processing after photos...",
+      detail: err.message,
     });
   }
 }

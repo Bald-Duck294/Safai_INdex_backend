@@ -15,16 +15,29 @@ export const registerUser = async (req, res) => {
     console.log("hashedPassword value:", hashedPassword);
     console.log("contains null byte:", hashedPassword.includes("\x00"));
 
+    const existing_user = await prisma.users.findUnique({
+      where: {
+        phone: phone,
+      },
+    });
+
+    if (existing_user)
+      res.status(409).json({
+        status: "error",
+        message: "email alredy exist pls try another one !",
+      });
+
     const user = await prisma.users.create({
       data: {
         name,
         email,
         phone,
         password: hashedPassword,
-        role_id: role_id,
+        role_id: role_id || null, // Handle optional fields
+        company_id: company_id || null,
+        age: age || null,
       },
     });
-
     // Convert BigInt to string for JSON serialization
     res
       .status(201)
@@ -43,25 +56,34 @@ export const loginUser = async (req, res) => {
   }
 
   try {
-
-    const user = await prisma.users.findFirst({
-  where: { phone },
-  orderBy: { createdAt: "desc" } // assuming you have a createdAt field
-});
-   // const user = await prisma.users.findUnique({ where: { phone } });
-console.log("user", user);
+    const user = await prisma.users.findUnique({
+      where: { phone },
+      orderBy: { created_at: "desc" }, // assuming you have a createdAt field
+    });
+    // const user = await prisma.users.findUnique({ where: { phone } });
+    console.log("user", user);
     if (!user) {
-      return res.status(404).json({ error: "User  not found." });
+      return res
+        .status(404)
+        .json({ error: "error", message: "User not Found!" });
+    } else if (!user.phone) {
+      return res.status(404).json({
+        status: "error",
+        message: "User does not exist !",
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ error: "Invalid credentials." });
+      return res
+        .status(401)
+        .json({ status: "error", message: "Password does not match !" });
     }
 
     // For simplicity, return basic info (in production use JWT)
     res.json({
+      status: "success",
       message: "Login successful",
       user: {
         id: user.id.toString(), // Convert BigInt to string

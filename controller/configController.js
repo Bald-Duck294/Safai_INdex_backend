@@ -5,11 +5,11 @@ import prisma from "../config/prismaClient.mjs";
 function convertBigInts(obj) {
   if (Array.isArray(obj)) {
     return obj.map(convertBigInts);
-  } else if (obj && typeof obj === 'object') {
+  } else if (obj && typeof obj === "object") {
     return Object.fromEntries(
       Object.entries(obj).map(([key, value]) => [
         key,
-        typeof value === 'bigint' ? value.toString() : convertBigInts(value),
+        typeof value === "bigint" ? value.toString() : convertBigInts(value),
       ])
     );
   } else {
@@ -21,7 +21,10 @@ function convertBigInts(obj) {
 export async function getConfigurationById(req, res) {
   const { id } = req.params;
   if (!id) {
-    return res.status(400).json({ message: "Missing 'id' in request parameters." });
+    return res.status(400).json({
+      status: "error",
+      message: "Missing 'id' in request parameters.",
+    });
   }
 
   try {
@@ -32,15 +35,24 @@ export async function getConfigurationById(req, res) {
     });
 
     if (!config) {
-      return res.status(404).json({ message: `Configuration with id '${id}' not found.` });
+      return res.status(404).json({
+        status: "error",
+        message: `Configuration with id '${id}' not found.`,
+      });
     }
 
     const safeConfig = convertBigInts(config);
 
-    res.json(safeConfig);
+    res.json({
+      status: "success",
+      data: safeConfig,
+      message: "Data retrived Sucessfully !",
+    });
   } catch (error) {
     console.error("Error fetching configuration:", error);
-    res.status(500).json({ message: "Internal server error." });
+    res
+      .status(500)
+      .json({ status: "error", message: "Internal server error." });
   }
 }
 
@@ -50,7 +62,10 @@ export async function getConfigurationByName(req, res) {
   console.log(name, "name from the request");
 
   if (!name) {
-    return res.status(400).json({ message: "Missing 'name' in request parameters." });
+    return res.status(400).json({
+      status: "error",
+      message: "Missing 'name' in request parameters.",
+    });
   }
 
   try {
@@ -63,14 +78,23 @@ export async function getConfigurationByName(req, res) {
     });
 
     if (!config) {
-      return res.status(404).json({ message: `Configuration with name '${name}' not found.` });
+      return res.status(404).json({
+        status: "error",
+        message: `Configuration with name '${name}' not found.`,
+      });
     }
 
     const safeConfig = convertBigInts(config);
 
-    res.json(safeConfig);
+    res.json({
+      status: "success",
+      data: safeConfig,
+      message: "Data retrived Sucessfully !",
+    });
   } catch (error) {
     console.error("Error fetching configuration:", error);
-    res.status(500).json({ message: "Internal server error." });
+    res
+      .status(500)
+      .json({ status: "error", message: "Internal server error." });
   }
 }

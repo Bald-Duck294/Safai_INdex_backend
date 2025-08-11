@@ -120,7 +120,7 @@ model users {
   company_id     BigInt?
   created_at     DateTime?        @default(now()) @db.Timestamp(6)
   updated_at     DateTime?        @default(now()) @db.Timestamp(6)
-  phone          String?          @db.VarChar(15)
+  phone          String?         @unique @db.VarChar(15)
   role_id        String?          @db.VarChar(15)
   activity_logs  activity_logs[]
   hygiene_scores hygiene_scores[]
