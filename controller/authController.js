@@ -57,8 +57,7 @@ export const loginUser = async (req, res) => {
 
   try {
     const user = await prisma.users.findUnique({
-      where: { phone },
-      orderBy: { created_at: "desc" }, // assuming you have a createdAt field
+      where: { phone }
     });
     // const user = await prisma.users.findUnique({ where: { phone } });
     console.log("user", user);
