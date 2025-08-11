@@ -2,11 +2,15 @@ import prisma from "../config/prismaClient.mjs";
 import bcrypt from "bcryptjs";
 
 export const registerUser = async (req, res) => {
-  const { name, email, phone, password, role_id, company_id, age } = req.body;
+  const { name, email, phone, password, role_id, company_id, age , birthdate} = req.body;
   console.log("in register", req.body);
+  // console.log(Object.keys(prisma.users), "prisma user");
+  console.log(prisma.users , "model users");
 
   if (!name || !phone || !password) {
-    return res.status(400).json({ error: "All fields are required." });
+    return res
+      .status(400)
+      .json({ error: "Name , Phone and Password  fields are required." });
   }
 
   try {
@@ -24,7 +28,7 @@ export const registerUser = async (req, res) => {
     if (existing_user)
       res.status(409).json({
         status: "error",
-        message: "email alredy exist pls try another one !",
+        message: "Phone No. alredy exist pls try another one !",
       });
 
     const user = await prisma.users.create({
@@ -34,8 +38,8 @@ export const registerUser = async (req, res) => {
         phone,
         password: hashedPassword,
         role_id: role_id || null, // Handle optional fields
-        company_id: company_id || null,
         age: age || null,
+        birthdate : birthdate || null
       },
     });
     // Convert BigInt to string for JSON serialization
@@ -57,7 +61,7 @@ export const loginUser = async (req, res) => {
 
   try {
     const user = await prisma.users.findUnique({
-      where: { phone }
+      where: { phone },
     });
     // const user = await prisma.users.findUnique({ where: { phone } });
     console.log("user", user);
