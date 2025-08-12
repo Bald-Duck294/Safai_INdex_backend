@@ -2,55 +2,58 @@ import prisma from "../config/prismaClient.mjs";
 import bcrypt from "bcryptjs";
 
 export const registerUser = async (req, res) => {
-  const { name, email, phone, password, role_id, company_id, age , birthdate} = req.body;
-  console.log("in register", req.body);
-  // console.log(Object.keys(prisma.users), "prisma user");
-  // console.log(prisma.users , "model users");
+  const { name, email, phone, password, role_id, company_id, age, birthdate } =
+    req.body;
 
   if (!name || !phone || !password) {
-    return res
-      .status(400)
-      .json({ error: "Name , Phone and Password  fields are required." });
+    return res.status(400).json({
+      error: "Name, Phone, and Password fields are required.",
+    });
   }
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("typeof hashedPassword:", typeof hashedPassword);
-    console.log("hashedPassword value:", hashedPassword);
-    console.log("contains null byte:", hashedPassword.includes("\x00"));
 
     const existing_user = await prisma.users.findUnique({
-      where: {
-        phone: phone,
-      },
+      where: { phone },
     });
 
-    if (existing_user)
-      res.status(409).json({
+    if (existing_user) {
+      return res.status(409).json({
         status: "error",
-        message: "Phone No. alredy exist pls try another one !",
+        message: "Phone No. already exists, please try another one!",
       });
+    }
 
-    const user = await prisma.users.create({
-      data: {
-        name,
-        email,
-        phone,
-        password: hashedPassword,
-        role_id: role_id || null, // Handle optional fields
-        age: age || null,
-        birthdate : birthdate || null
-      },
+    // Build the base data object
+    const data = {
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      role_id: role_id || null,
+      age: age || null,
+      birthdate: birthdate || null,
+    };
+
+    // Conditionally add relation
+    if (company_id) {
+      data.companies = { connect: { id: company_id } };
+    }
+
+    // Create the user with full data
+    const user = await prisma.users.create({ data });
+
+    res.status(201).json({
+      message: "User registered",
+      userId: user.id.toString(),
     });
-    // Convert BigInt to string for JSON serialization
-    res
-      .status(201)
-      .json({ message: "User  registered", userId: user.id.toString() });
   } catch (err) {
     console.error("Registration Error:", err);
-    res.status(500).json({ error: "User  registration failed." });
+    res.status(500).json({ error: "User registration failed." });
   }
 };
+
 
 export const loginUser = async (req, res) => {
   const { phone, password } = req.body;

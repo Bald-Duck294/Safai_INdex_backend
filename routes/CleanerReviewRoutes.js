@@ -27,7 +27,6 @@
 //   next();
 // };
 
-
 // clean_review_Router.post(
 //   "/",
 //   debugFields,
@@ -37,7 +36,6 @@
 //   ]),
 //   createCleanerReview
 // );
-
 
 // // Routes
 // clean_review_Router.get("/", getCleanerReview); // optional ?cleaner_user_id
@@ -52,9 +50,7 @@
 //   createCleanerReview
 // );
 
-
 // export default clean_review_Router;
-
 
 import express from "express";
 import multer from "multer";
@@ -63,6 +59,7 @@ import {
   getCleanerReview,
   getCleanerReviewsById,
   createCleanerReview,
+  completeCleanerReview,
 } from "../controller/cleanerReviewController.js";
 
 const clean_review_Router = express.Router();
@@ -106,15 +103,33 @@ const debugFields = (req, res, next) => {
 // Routes
 clean_review_Router.get("/", getCleanerReview); // Optional ?cleaner_user_id
 clean_review_Router.get("/:cleaner_user_id", getCleanerReviewsById);
+// clean_review_Router.post("/cleaner-review/initiated", createCleanerReview);
+// clean_review_Router.post("/cleaner-review/completed ", completeCleanerReview);
 
 clean_review_Router.post(
-  "/",
+  "/initiated",
   debugFields,
   upload.fields([
-    { name: "before_photos", maxCount: 5 },
-    { name: "after_photos", maxCount: 5 },
+    { name: "before_photo", maxCount: 5 },
   ]),
   createCleanerReview
 );
+
+clean_review_Router.post(
+  "/completed",
+  debugFields,
+  upload.fields([{ name: "after_photo", maxCount: 5 }]),
+  completeCleanerReview
+);
+
+// clean_review_Router.post(
+//   "/",
+//   debugFields,
+//   upload.fields([
+//     { name: "before_photo", maxCount: 5 },
+//     { name: "after_photo", maxCount: 5 },
+//   ]),
+//   createCleanerReview
+// );
 
 export default clean_review_Router;

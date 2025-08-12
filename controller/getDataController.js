@@ -1,5 +1,5 @@
 import prisma from "../config/prismaClient.mjs";
-import db from '../db.js'
+import db from "../db.js";
 export async function getUser(req, res) {
   try {
     const users = await prisma.users.findMany();
@@ -616,7 +616,8 @@ export const getNearbyLocations = async (req, res) => {
   const distance = parseFloat(radius || 1000); // default 1000 meters
 
   try {
-   const result = await db.query(`
+    const result = await db.query(
+      `
     SELECT 
       id,
       name,
@@ -661,7 +662,7 @@ console.log(result , "data");
 //   }
 
 //   const result = await db.query(`
-//     SELECT 
+//     SELECT
 //       id,
 //       name,
 //       ST_AsText(geom) AS geo_location,

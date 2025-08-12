@@ -70,107 +70,10 @@ export const getCleanerReviewsById = async (req, res) => {
     });
   }
 };
-// POST a new review
 
-// export async function createCleanerReview(req, res) {
-//   try {
-//     const {
-//       name,
-//       phone,
-//       site_id,
-//       remarks,
-//       latitude,
-//       longitude,
-//       address,
-//       cleaner_user_id,
-//       task_ids,
-//     } = req.body;
-
-//     console.log(req.body, "request body");
-//     console.log(req.files, "request files");
-//     const parsedTaskIds = Array.isArray(task_ids)
-//       ? task_ids.map(Number)
-//       : task_ids
-//       ? task_ids.split(",").map((id) => Number(id.trim()))
-//       : [];
-
-//     const imageFilenames = req.files.map((file) => file.filename);
-
-//     // 1. Create review
-//     const review = await prisma.cleaner_review.create({
-//       data: {
-//         name,
-//         phone,
-//         site_id: BigInt(site_id || 1),
-//         remarks,
-//         latitude: parseFloat(latitude),
-//         longitude: parseFloat(longitude),
-//         address,
-//         images: imageFilenames,
-//         cleaner_user_id: BigInt(cleaner_user_id || 1),
-//         task_id: parsedTaskIds,
-//       },
-//     });
-
-//     const serializedReview = {
-//       ...review,
-//       id: review.id.toString(),
-//       site_id: review.site_id.toString(),
-//       cleaner_user_id: review.cleaner_user_id.toString(),
-//       created_at: review.created_at.toISOString(),
-//       updated_at: review.updated_at.toISOString(),
-//     };
-
-//     // 2. Simulate model processing for each image
-//     const hygieneResponses = [];
-
-//     for (const filename of imageFilenames) {
-//       const imageUrl = `http://your-image-host.com/uploads/${filename}`;
-
-//       // Simulated model output
-//       const modelResponse = {
-//         status: "success",
-//         score: Math.floor(Math.random() * 41) + 60, // random score between 60-100
-//         metadata: {},
-//         timestamp: new Date().toISOString(),
-//       };
-
-//       // Save hygiene score to DB
-//       const hygieneRecord = await prisma.hygiene_scores.create({
-//         data: {
-//           location_id: BigInt(site_id || 1),
-//           score: modelResponse.score,
-//           details: modelResponse.metadata,
-//           image_url: imageUrl,
-//           inspected_at: new Date(modelResponse.timestamp),
-//           created_by: BigInt(cleaner_user_id || 1),
-//         },
-//       });
-
-//       hygieneResponses.push({
-//         id: hygieneRecord.id.toString(),
-//         score: hygieneRecord.score,
-//         image_url: hygieneRecord.image_url,
-//         inspected_at: hygieneRecord.inspected_at.toISOString(),
-//         location_id: hygieneRecord.location_id?.toString(),
-//       });
-//     }
-
-//     // 3. Return response
-//     res.status(201).json({
-//       review: serializedReview,
-//       hygiene_scores: hygieneResponses,
-//     });
-//   } catch (err) {
-//     console.error("Create Review Error:", err);
-//     res.status(400).json({
-//       error: "Failed to create review",
-//       detail: err,
-//     });
-//   }
-// }
-
+// 1️⃣ Create review (BEFORE phase)
 export async function createCleanerReview(req, res) {
+  console.log("in create review");
   try {
     const {
       name,
@@ -183,35 +86,25 @@ export async function createCleanerReview(req, res) {
       cleaner_user_id,
       task_ids,
       initial_comment,
-      final_comment,
-      status,
     } = req.body;
 
-    console.log(req.body, "request body");
-    console.log(req.files, "request files");
-
-    // Safe extraction from req.files object
-    const beforePhotos = Array.isArray(req.files?.before_photos)
-      ? req.files.before_photos.map((file) => file.filename)
+    const beforePhotos = Array.isArray(req.files?.before_photo)
+      ? req.files.before_photo.map((f) => f.filename)
+      : Array.isArray(req.body.before_photo)
+      ? req.body.before_photo
+      : req.body.before_photo
+      ? [req.body.before_photo]
       : [];
 
-    const afterPhotos = Array.isArray(req.files?.after_photos)
-      ? req.files.after_photos.map((file) => file.filename)
-      : [];
-
-    // const parsedTaskIds = Array.isArray(task_ids)
-    //   ? task_ids.map(Number)
-    //   : task_ids
-    //   ? task_ids.split(",").map(id => Number(id.trim()))
-    //   : [];
-
+    console.log(beforePhotos, "photos");
+    console.log(req.files, "files");
+    console.log(req.files?.before_photos, "actual photo");
     const parsedTaskIds = Array.isArray(task_ids)
-      ? task_ids.map((id) => String(id).trim())
+      ? task_ids.map(String)
       : task_ids
       ? task_ids.split(",").map((id) => String(id).trim())
       : [];
 
-    // Create review
     const review = await prisma.cleaner_review.create({
       data: {
         name,
@@ -223,63 +116,83 @@ export async function createCleanerReview(req, res) {
         address,
         cleaner_user_id: cleaner_user_id ? BigInt(cleaner_user_id) : null,
         task_id: parsedTaskIds,
-        initial_comment,
-        final_comment,
-        before_photo: beforePhotos,
-        after_photo: afterPhotos,
-        status,
-        images: ["dummyImage.jpeg"],
-        status: status || "ongoing",
         initial_comment: initial_comment || null,
-        final_comment: final_comment || null,
+        before_photo: beforePhotos,
+        after_photo: [],
+        status: "ongoing",
       },
     });
 
-    // Convert BigInt fields to strings for JSON
-    const serializedReview = {
-      ...review,
-      id: review.id?.toString(),
-      site_id: review.site_id?.toString(),
-      cleaner_user_id: review.cleaner_user_id?.toString(),
-    };
+    console.log(review, "revies");
+    const serializedData = [review].map((item) => ({
+      ...item,
+      id: item?.id.toString(),
+      site_id: item?.id.toString(),
+      cleaner_user_id: item?.cleaner_user_id.toString(),
+    }));
 
-    // Simulate AI scoring only for AFTER photos
+    res.status(201).json({ status: "success", serializedData });
+  } catch (err) {
+    res.status(400).json({ status: "error", detail: err.message });
+  }
+}
+
+// 2️⃣ Update review (AFTER phase)
+export async function completeCleanerReview(req, res) {
+  console.log("in complete clener review");
+  try {
+    const { final_comment, status, id } = req.body;
+    // const { id } = req.params ;
+
+    console.log(req.files, "files");
+    console.log(req.files?.after_photo, "after photo");
+
+    const afterPhotos = Array.isArray(req.files?.after_photo)
+      ? req.files.after_photo.map((f) => f.filename)
+      : Array.isArray(req.body.after_photo)
+      ? req.body.after_photo
+      : req.body.after_photo
+      ? [req.body.after_photo]
+      : [];
+
+    console.log(afterPhotos, "after phots");
+    const review = await prisma.cleaner_review.update({
+      where: { id: BigInt(id) },
+      data: {
+        after_photo: afterPhotos,
+        final_comment: final_comment || null,
+        status: status || "completed",
+      },
+    });
+
+    console.log("after review", review);
+
+    const serializedData = [review].map((item) => ({
+      ...item,
+      id: item?.id.toString(),
+      site_id: item?.id.toString(),
+      cleaner_user_id: item?.cleaner_user_id.toString(),
+    }));
+
+    // Trigger AI scoring for AFTER photos
     afterPhotos.forEach((filename, index) => {
       setTimeout(async () => {
-        const simulatedScore = Math.floor(Math.random() * 41) + 60; // 60–100
-        const modelResponse = {
-          status: "success",
-          score: simulatedScore,
-          timestamp: new Date().toISOString(),
-        };
-
+        const simulatedScore = Math.floor(Math.random() * 41) + 60;
         await prisma.hygiene_scores.create({
           data: {
-            location_id: site_id ? BigInt(site_id) : null,
+            location_id: review.site_id,
             score: simulatedScore,
-            details: { ai_status: modelResponse.status },
+            details: { ai_status: "success" },
             image_url: `http://your-image-host.com/uploads/${filename}`,
-            inspected_at: new Date(modelResponse.timestamp),
-            created_by: cleaner_user_id ? BigInt(cleaner_user_id) : null,
+            inspected_at: new Date(),
+            created_by: review.cleaner_user_id,
           },
         });
-
-        console.log(`AI processed image ${filename}:`, modelResponse);
       }, 2000 * (index + 1));
     });
 
-    console.log(review, "review ");
-    res.status(201).json({
-      status: "success",
-      message: "Review created. AI processing after photos...",
-      review: serializedReview,
-    });
+    res.json({ status: "success", data: serializedData });
   } catch (err) {
-    console.error("Create Review Error:", err);
-    res.status(400).json({
-      status: "error",
-      message: "Review created. AI processing after photos...",
-      detail: err.message,
-    });
+    res.status(400).json({ status: "error", detail: err.message });
   }
 }

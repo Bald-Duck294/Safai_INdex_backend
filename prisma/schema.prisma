@@ -146,7 +146,6 @@ model cleaner_review {
   name            String
   phone           String
   remarks         String?
-  images          String[]
   latitude        Float?
   longitude       Float?
   address         String?
