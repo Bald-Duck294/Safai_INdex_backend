@@ -1,6 +1,7 @@
 import express from "express";
 import prisma from "../config/prismaClient.mjs";
 import multer from "multer";
+import axios from "axios";
 
 export async function getCleanerReview(req, res) {
   console.log("request made");
@@ -175,10 +176,13 @@ export async function completeCleanerReview(req, res) {
     }));
 
     // Trigger AI scoring for AFTER photos
-    afterPhotos.forEach((filename, index) => {
-      setTimeout(async () => {
-        const simulatedScore = Math.floor(Math.random() * 41) + 60;
-        await prisma.hygiene_scores.create({
+
+    const data = await axios.post('https://pugarch-c-score-369586418873.europe-west1.run.app/predict',
+      data={
+        images:beforePhotos
+      }
+    )
+    const res =  await prisma.hygiene_scores.create({
           data: {
             location_id: review.site_id,
             score: simulatedScore,
@@ -188,8 +192,7 @@ export async function completeCleanerReview(req, res) {
             created_by: review.cleaner_user_id,
           },
         });
-      }, 2000 * (index + 1));
-    });
+      
 
     res.json({ status: "success", data: serializedData });
   } catch (err) {

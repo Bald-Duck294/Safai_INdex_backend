@@ -8,13 +8,18 @@ import configRouter from "./routes/configRoutes.js";
 import clean_review_Router from "./routes/CleanerReviewRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import loginRoute from "./routes/loginApi.js";
+// import { verifyToken } from "./middlewares/authMiddleware.js";
+import { verifyToken } from "./utils/jwt.js";
+// import { generateToken } from "./utils/jwt.js";
 const app = express();
 
 app.use(express.json());
 
 app.use(cors());
 
-app.use("/api", getLocationRoutes);
+
+app.use("/api", verifyToken);
+app.use("/api", getLocationRoutes); 
 app.use("/api", location_types_router);
 app.use("/api", configRouter);
 app.use("/api/", loginRoute);
