@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { verifyToken, generateToken } from "./utils/jwt.js";
+import { verifyToken} from "./utils/jwt.js";
 
 import getLocationRoutes from "./routes/LocationRoutes.js";
 import location_types_router from "./routes/locationTypes.js";
@@ -35,5 +35,5 @@ app.get("/", (req, res) => {
 
 app.listen(8000, () => {
   console.log("Your server started at port 8000");
-  console.log("Your constant token:", generateToken()); // print it for Postman
+  // console.log("Your constant token:", generateToken()); // print it for Postman
 });
