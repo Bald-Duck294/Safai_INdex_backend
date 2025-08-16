@@ -8,11 +8,15 @@ import configRouter from "./routes/configRoutes.js";
 import clean_review_Router from "./routes/CleanerReviewRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import loginRoute from "./routes/loginApi.js";
+import loginRoute11 from "./routes/loginRouts.js";
+
+import { loginUser } from "./controller/authController.js";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
+app.use("/api", loginRoute11);
 // 🔑 Protect all /api routes
 app.use("/api", verifyToken);
 

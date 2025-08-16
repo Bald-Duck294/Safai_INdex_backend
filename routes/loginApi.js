@@ -8,6 +8,6 @@ const loginRoute = express.Router();
 loginRoute.post("/register", registerUser);
 
 // Login API - POST /api/auth/login
-loginRoute.post("/login", loginUser);
+// loginRoute.post("/login", loginUser);
 
 export default loginRoute;
