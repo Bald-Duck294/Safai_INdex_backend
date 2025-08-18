@@ -5,9 +5,9 @@ export const registerUser = async (req, res) => {
   const { name, email, phone, password, role_id, company_id, age, birthdate } =
     req.body;
 
-  if (!name || !phone || !password) {
+  if (!phone || !password) {
     return res.status(400).json({
-      error: "Name, Phone, and Password fields are required.",
+      error: " Phone, and Password fields are required.",
     });
   }
 
