@@ -50,7 +50,7 @@ export const generateToken = (payload) => {
 
 
 export const verifyToken = (req, res, next) => {
-  console.log("in verify token");
+  console.log("in verify token 222");
 
 
 // console.log(req?.authorization , "auth type");
