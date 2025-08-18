@@ -10,21 +10,22 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import loginRoute from "./routes/loginApi.js";
 import loginRoute11 from "./routes/loginRouts.js";
 
-import { loginUser } from "./controller/authController.js";
+// import { loginUser } from "./controller/authController.js";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use("/api", loginRoute11);
+// app.use("/api", loginRoute11);
 // 🔑 Protect all /api routes
+app.use("/api", loginRoute);
+
 app.use("/api", verifyToken);
 
 // Routes
 app.use("/api", getLocationRoutes);
 app.use("/api", location_types_router);
 app.use("/api", configRouter);
-app.use("/api", loginRoute);
 app.use("/api/cleaner-reviews", clean_review_Router);
 app.use("/api/reviews", reviewRoutes);
 app.use("/uploads", express.static("uploads"));

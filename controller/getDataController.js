@@ -113,7 +113,7 @@ export const getAllToilets = async (req, res) => {
       };
     });
 
-    console.log(result, "result");
+    console.log(result.slice*(0,6), "result");
     res.json(result);
   } catch (err) {
     console.error(err);
