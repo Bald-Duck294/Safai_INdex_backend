@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { verifyToken} from "./utils/jwt.js";
+import { verifyToken } from "./utils/jwt.js";
 
 import getLocationRoutes from "./routes/LocationRoutes.js";
 import location_types_router from "./routes/locationTypes.js";
@@ -8,8 +8,7 @@ import configRouter from "./routes/configRoutes.js";
 import clean_review_Router from "./routes/CleanerReviewRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import loginRoute from "./routes/loginApi.js";
-import loginRoute11 from "./routes/loginRouts.js";
-
+import clen_assign_router from "./routes/clen_assignRoutes.js";
 // import { loginUser } from "./controller/authController.js";
 
 const app = express();
@@ -28,6 +27,7 @@ app.use("/api", location_types_router);
 app.use("/api", configRouter);
 app.use("/api/cleaner-reviews", clean_review_Router);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api", clen_assign_router);
 app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => {

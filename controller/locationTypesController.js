@@ -54,9 +54,14 @@ export const createLocationType = async (req, res) => {
 
 // PATCH /api/location-types/:id
 // PATCH /api/location-types/:id
+
+
 export const updateLocationType = async (req, res) => {
+  console.log("update location types");
   const { id } = req.params;
   const { name, parent_id } = req.body;
+
+  console.log(id, name, parent_id, "parent id");
 
   try {
     const data = {};
@@ -81,7 +86,6 @@ export const updateLocationType = async (req, res) => {
     res.status(500).json({ message: "Failed to update location type" });
   }
 };
-
 
 // PATCH /api/location-types/:id/mark-toilet
 export const markAsToilet = async (req, res) => {
