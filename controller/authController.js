@@ -55,8 +55,6 @@ export const registerUser = async (req, res) => {
 };
 
 export const loginUser = async (req, res) => {
-
-
   const { phone, password } = req.body;
 
   if (!phone || !password) {
@@ -99,7 +97,8 @@ export const loginUser = async (req, res) => {
         phone: user.phone,
         age: user.age,
         role_id: user.role_id,
-        token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIn0.X-gpybmE2KFZNPQqEY05FV70eXY4ypXHmmdDhyK0V6I'
+        token:
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIn0.X-gpybmE2KFZNPQqEY05FV70eXY4ypXHmmdDhyK0V6I",
       },
     });
   } catch (err) {

@@ -55,6 +55,7 @@ export const verifyToken = (req, res, next) => {
 
 // console.log(req?.authorization , "auth type");
   const authHeader = req.headers["authorization"]; // "Bearer <token>"
+  console.log(authHeader , "authheaders");
   console.log(authHeader.split(" "), "auth headers");
 
   if (!authHeader) {
