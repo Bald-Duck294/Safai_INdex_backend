@@ -79,7 +79,7 @@ export const getAssignmentByCleanerUserId = async (req, res) => {
       orderBy: { id: "asc" }
     });
 
-    console.log(assignments.length , assignments.length === 0 )
+    console.log(assignments.length, assignments.length === 0)
     if (assignments.length === 0) {
       return res.status(200).json({
         status: "success",
@@ -104,46 +104,103 @@ export const getAssignmentByCleanerUserId = async (req, res) => {
 /**
  * CREATE new assignment
  */
-export const createAssignment = async (req, res) => {
-  try {
-    const { name, cleaner_user_id, company_id, type_id, location_id, status } =
-      req.body;
-    
-    // Basic validation
-    if (!name || !cleaner_user_id || !company_id) {
-        return res.status(400).json({ status: "error", message: "Missing required fields: name, cleaner_user_id, company_id." });
-    }
+// export const createAssignment = async (req, res) => {
+//   try {
+//     const { name, cleaner_user_id, company_id, type_id, location_id, status } =
+//       req.body;
 
-    const newAssignment = await prisma.cleaner_assignments.create({
-      data: {
-        name,
-        cleaner_user_id: parseInt(cleaner_user_id),
-        company_id: parseInt(company_id),
-        type_id: type_id ? parseInt(type_id) : null,
-        location_id: location_id ? parseInt(location_id) : null,
-        status: status || "unassigned",
-      },
-    });
+//     // Basic validation
+//     if (!name || !cleaner_user_id || !company_id) {
+//         return res.status(400).json({ status: "error", message: "Missing required fields: name, cleaner_user_id, company_id." });
+//     }
 
-    res.status(201).json({
-        status: "success",
-        message: "Assignment created successfully.",
-        data: serializeBigInt(newAssignment),
-    });
-  } catch (error) {
-    console.error("Error creating assignment:", error);
-    res.status(500).json({ status: "error", message: "Internal Server Error" });
-  }
-};
+//     const newAssignment = await prisma.cleaner_assignments.create({
+//       data: {
+//         name,
+//         cleaner_user_id: parseInt(cleaner_user_id),
+//         company_id: parseInt(company_id),
+//         type_id: type_id ? parseInt(type_id) : null,
+//         location_id: location_id ? parseInt(location_id) : null,
+//         status: status || "unassigned",
+//       },
+//     });
+
+//     res.status(201).json({
+//         status: "success",
+//         message: "Assignment created successfully.",
+//         data: serializeBigInt(newAssignment),
+//     });
+//   } catch (error) {
+//     console.error("Error creating assignment:", error);
+//     res.status(500).json({ status: "error", message: "Internal Server Error" });
+//   }
+// };
 
 /**
  * UPDATE assignment by id
  */
+
+
+export const createAssignment = async (req, res) => {
+
+  console.log("in create assignmets");
+  try {
+    // Expect 'location_ids' to be an array of strings/numbers
+    const { cleaner_user_id, company_id, location_ids, status } = req.body;
+
+    // --- Validation ---
+    if (!cleaner_user_id || !company_id || !location_ids || !Array.isArray(location_ids) || location_ids.length === 0) {
+      return res.status(400).json({ status: "error", message: "Missing required fields: cleaner_user_id, company_id, and a non-empty array of location_ids." });
+    }
+
+    // --- Data Preparation ---
+    // Fetch the locations to get their actual names and type_ids
+    const locations = await prisma.locations.findMany({
+      where: {
+        id: { in: location_ids.map(id => BigInt(id)) }
+      },
+      select: { id: true, name: true, type_id: true }
+    });
+
+    // Ensure all requested locations were found
+    if (locations.length !== location_ids.length) {
+      return res.status(404).json({ status: "error", message: "One or more selected locations could not be found." });
+    }
+
+    // Prepare the data for a bulk-creation database query
+    const assignmentsToCreate = locations.map(location => ({
+      name: location.name, // Use the location's name as the assignment name
+      cleaner_user_id: BigInt(cleaner_user_id),
+      company_id: BigInt(company_id),
+      type_id: location.type_id, // Use the type_id from the location
+      location_id: location.id,
+      status: status || "unassigned",
+    }));
+
+    // --- Database Operation ---
+    // Use `createMany` for an efficient bulk insert
+    const result = await prisma.cleaner_assignments.createMany({
+      data: assignmentsToCreate,
+    });
+
+    res.status(201).json({
+      status: "success",
+      message: `${result.count} assignments created successfully.`,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error creating assignments:", error);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
+};
+
+
+
 export const updateAssignment = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
-        return res.status(400).json({ status: "error", message: "Invalid ID provided." });
+      return res.status(400).json({ status: "error", message: "Invalid ID provided." });
     }
 
     const { name, cleaner_user_id, company_id, type_id, location_id, status } =
@@ -165,14 +222,14 @@ export const updateAssignment = async (req, res) => {
     });
 
     res.status(200).json({
-        status: "success",
-        message: "Assignment updated successfully.",
-        data: serializeBigInt(updatedAssignment),
+      status: "success",
+      message: "Assignment updated successfully.",
+      data: serializeBigInt(updatedAssignment),
     });
   } catch (error) {
     // Handle cases where the record to update doesn't exist
     if (error.code === 'P2025') {
-        return res.status(404).json({ status: "error", message: "Assignment not found." });
+      return res.status(404).json({ status: "error", message: "Assignment not found." });
     }
     console.error("Error updating assignment:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
@@ -186,7 +243,7 @@ export const deleteAssignment = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
-        return res.status(400).json({ status: "error", message: "Invalid ID provided." });
+      return res.status(400).json({ status: "error", message: "Invalid ID provided." });
     }
 
     await prisma.cleaner_assignments.delete({
@@ -195,9 +252,9 @@ export const deleteAssignment = async (req, res) => {
 
     res.status(200).json({ status: "success", message: "Assignment deleted successfully." });
   } catch (error) {
-     // Handle cases where the record to delete doesn't exist
+    // Handle cases where the record to delete doesn't exist
     if (error.code === 'P2025') {
-        return res.status(404).json({ status: "error", message: "Assignment not found." });
+      return res.status(404).json({ status: "error", message: "Assignment not found." });
     }
     console.error("Error deleting assignment:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });

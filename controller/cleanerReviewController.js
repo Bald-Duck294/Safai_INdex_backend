@@ -1,21 +1,91 @@
-import express from "express";
+import express, { response } from "express";
 import prisma from "../config/prismaClient.mjs";
 import multer from "multer";
 import axios from "axios";
 
+import FormData from "form-data";
+import fs from "fs";
+import path from "path";
+
+// export async function getCleanerReview(req, res) {
+//   console.log("request made");
+
+//   const { cleaner_user_id, status } = req.query;
+
+//   try {
+//     const whereClause = cleaner_user_id
+//       ? { cleaner_user_id: BigInt(cleaner_user_id) }
+//       : {};
+
+//     if (status) {
+//       whereClause.status = status;
+//     }
+//     console.log(whereClause, "where clause");
+//     const reviews = await prisma.cleaner_review.findMany({
+//       where: whereClause,
+//     });
+
+//     console.log(reviews, "reviews");
+//     const serialized = reviews.map((r) => {
+//       const safeReview = {};
+//       for (const [key, value] of Object.entries(r)) {
+//         safeReview[key] = typeof value === "bigint" ? value.toString() : value;
+//       }
+//       return safeReview;
+//     });
+
+//     res.json(serialized);
+//   } catch (err) {
+//     console.error("Fetch Cleaner Reviews Error:", err);
+//     res.status(500).json({
+//       error: "Failed to fetch cleaner reviews",
+//       detail: {
+//         message: err.message,
+//         name: err.name,
+//         stack: err.stack,
+//       },
+//     });
+//   }
+// }
+
+
 export async function getCleanerReview(req, res) {
   console.log("request made");
 
-  const { cleaner_user_id, status } = req.query;
+  // Destructure date from the query parameters
+  const { cleaner_user_id, status, date } = req.query;
+
+  console.log(date, "date");
 
   try {
-    const whereClause = cleaner_user_id
-      ? { cleaner_user_id: BigInt(cleaner_user_id) }
-      : {};
+    const whereClause = {};
 
+    // Add cleaner_user_id to the where clause if it exists
+    if (cleaner_user_id) {
+      whereClause.cleaner_user_id = BigInt(cleaner_user_id);
+    }
+
+    // Add status to the where clause if it exists
     if (status) {
       whereClause.status = status;
     }
+
+    // Add date filtering logic if a date is provided
+    if (date) {
+      const startDate = new Date(date);
+      // Set to the beginning of the day (00:00:00)
+      startDate.setUTCHours(0, 0, 0, 0);
+
+      const endDate = new Date(startDate);
+      // Set to the beginning of the next day
+      endDate.setDate(startDate.getDate() + 1);
+
+      whereClause.created_at = {
+        gte: startDate, // Greater than or equal to the start of the day
+        lt: endDate,    // Less than the start of the next day
+      };
+    }
+
     console.log(whereClause, "where clause");
     const reviews = await prisma.cleaner_review.findMany({
       where: whereClause,
@@ -43,6 +113,8 @@ export async function getCleanerReview(req, res) {
     });
   }
 }
+
+
 
 export const getCleanerReviewsById = async (req, res) => {
   console.log("here");
@@ -97,10 +169,10 @@ export async function createCleanerReview(req, res) {
     const beforePhotos = Array.isArray(req.files?.before_photo)
       ? req.files.before_photo.map((f) => f.filename)
       : Array.isArray(req.body.before_photo)
-      ? req.body.before_photo
-      : req.body.before_photo
-      ? [req.body.before_photo]
-      : [];
+        ? req.body.before_photo
+        : req.body.before_photo
+          ? [req.body.before_photo]
+          : [];
 
     console.log(beforePhotos, "photos");
     console.log(req.files, "files");
@@ -108,8 +180,8 @@ export async function createCleanerReview(req, res) {
     const parsedTaskIds = Array.isArray(task_ids)
       ? task_ids.map(String)
       : task_ids
-      ? task_ids.split(",").map((id) => String(id).trim())
-      : [];
+        ? task_ids.split(",").map((id) => String(id).trim())
+        : [];
 
     const review = await prisma.cleaner_review.create({
       data: {
@@ -205,6 +277,119 @@ export async function createCleanerReview(req, res) {
 //   }
 // }
 
+// export async function completeCleanerReview(req, res) {
+//   console.log("in complete cleaner review");
+//   try {
+//     const { final_comment, id } = req.body;
+
+//     // Collect after photos (from file upload or body)
+//     const afterPhotos = Array.isArray(req.files?.after_photo)
+//       ? req.files.after_photo.map((f) => f.filename)
+//       : Array.isArray(req.body.after_photo)
+//         ? req.body.after_photo
+//         : req.body.after_photo
+//           ? [req.body.after_photo]
+//           : [];
+
+//     console.log(afterPhotos, "after photos");
+
+//     // ✅ Main DB update (this is the core API response)
+//     const review = await prisma.cleaner_review.update({
+//       where: { id: BigInt(id) },
+//       data: {
+//         after_photo: afterPhotos,
+//         final_comment: final_comment || null,
+//         status: "completed", // status handled internally
+//       },
+//     });
+
+//     const serializedData = {
+//       ...review,
+//       id: review?.id.toString(),
+//       site_id: review?.site_id?.toString(),
+//       cleaner_user_id: review?.cleaner_user_id?.toString(),
+//     };
+
+//     // Send response immediately (main result)
+//     res.json({
+//       status: "success",
+//       message: "Review completed successfully",
+//       data: serializedData,
+//     });
+
+//     // ✅ Run AI scoring in the background (no response sent back to client)
+//     // (async () => {
+
+//     //   try {
+//     //     console.log('in here');
+//     //     const aiResponse = await axios.post(
+//     //       "https://pugarch-c-score-369586418873.europe-west1.run.app/predict",
+//     //       { images: afterPhotos }
+//     //     );
+
+//     //     console.log(aiResponse , "response");
+//     //     // Example: extract score safely (update with real field)
+//     //     const simulatedScore = aiResponse?.data?.score || 0;
+
+//     //     await prisma.hygiene_scores.create({
+//     //       data: {
+//     //         location_id: review.site_id,
+//     //         score: simulatedScore,
+//     //         details: { ai_status: "success" },
+//     //         image_url: afterPhotos[0]
+//     //           ? `http://your-image-host.com/uploads/${afterPhotos[0]}`
+//     //           : null,
+//     //         inspected_at: new Date(),
+//     //         created_by: review.cleaner_user_id,
+//     //       },
+//     //     });
+
+//     //     console.log("✅ Hygiene score saved for review:", review.id);
+//     //   } catch (aiError) {
+//     //     console.error("AI Scoring failed:", aiError.message);
+//     //   }
+//     // })();
+
+
+//     (async () => {
+//       try {
+//         console.log("in ai models")
+//         const formData = new FormData();
+
+//         // Attach multiple photos (from your uploads folder)
+//         afterPhotos.forEach((photo) => {
+//           const filePath = path.join("uploads", photo);
+//           formData.append("images", fs.createReadStream(filePath));
+//         });
+
+//         const aiResponse = await axios.post(
+//           "https://pugarch-c-score-369586418873.europe-west1.run.app/predict",
+//           formData,
+//           {
+//             headers: {
+//               ...formData.getHeaders(),
+//             },
+//           }
+//         );
+
+//         console.log(aiResponse.data, "AI response");
+//       } catch (err) {
+//         console.error("AI scoring failed:", err.message);
+//       }
+//     })();
+
+
+//   } catch (err) {
+//     console.error("Error completing review:", err.message);
+//     res.status(400).json({ status: "error", detail: err.message });
+//   }
+// }
+
+
+
+
+
+
 export async function completeCleanerReview(req, res) {
   console.log("in complete cleaner review");
   try {
@@ -214,20 +399,20 @@ export async function completeCleanerReview(req, res) {
     const afterPhotos = Array.isArray(req.files?.after_photo)
       ? req.files.after_photo.map((f) => f.filename)
       : Array.isArray(req.body.after_photo)
-      ? req.body.after_photo
-      : req.body.after_photo
-      ? [req.body.after_photo]
-      : [];
+        ? req.body.after_photo
+        : req.body.after_photo
+          ? [req.body.after_photo]
+          : [];
 
     console.log(afterPhotos, "after photos");
 
-    // ✅ Main DB update (this is the core API response)
+    // ✅ Update the review
     const review = await prisma.cleaner_review.update({
       where: { id: BigInt(id) },
       data: {
         after_photo: afterPhotos,
         final_comment: final_comment || null,
-        status: "completed", // status handled internally
+        status: "completed",
       },
     });
 
@@ -238,42 +423,54 @@ export async function completeCleanerReview(req, res) {
       cleaner_user_id: review?.cleaner_user_id?.toString(),
     };
 
-    // Send response immediately (main result)
+    // Send response immediately
     res.json({
       status: "success",
       message: "Review completed successfully",
       data: serializedData,
     });
 
-    // ✅ Run AI scoring in the background (no response sent back to client)
+    // ✅ AI scoring in background
     (async () => {
       try {
-        const aiResponse = await axios.post(
-          "https://pugarch-c-score-369586418873.europe-west1.run.app/predict",
-          { images: afterPhotos }
-        );
+        console.log("in ai models");
+        const formData = new FormData();
 
-        // Example: extract score safely (update with real field)
-        const simulatedScore = aiResponse?.data?.score || 0;
-
-        await prisma.hygiene_scores.create({
-          data: {
-            location_id: review.site_id,
-            score: simulatedScore,
-            details: { ai_status: "success" },
-            image_url: afterPhotos[0]
-              ? `http://your-image-host.com/uploads/${afterPhotos[0]}`
-              : null,
-            inspected_at: new Date(),
-            created_by: review.cleaner_user_id,
-          },
+        afterPhotos.forEach((photo) => {
+          const filePath = path.join("uploads", photo); // adjust to your uploads dir
+          formData.append("images", fs.createReadStream(filePath));
         });
 
-        console.log("✅ Hygiene score saved for review:", review.id);
+        const aiResponse = await axios.post(
+          "https://pugarch-c-score-369586418873.europe-west1.run.app/predict",
+          formData,
+          { headers: { ...formData.getHeaders() } }
+        );
+
+        console.log(aiResponse.data, "AI response");
+
+        // Iterate over AI response (array of results)
+        for (const item of aiResponse.data) {
+          await prisma.hygiene_scores.create({
+            data: {
+              location_id: review.site_id,                  // from review
+              score: item.score,                           // score from AI
+              details: item.metadata,                      // metadata JSON
+              image_url: item.filename                     // store filename (or build full URL if hosted)
+                ? `http://your-image-host.com/uploads/${item.filename}`
+                : null,
+              inspected_at: new Date(),                    // now
+              created_by: review.cleaner_user_id,          // cleaner
+            },
+          });
+        }
+
+        console.log("✅ Hygiene scores saved for review:", review.id);
       } catch (aiError) {
         console.error("AI Scoring failed:", aiError.message);
       }
     })();
+
   } catch (err) {
     console.error("Error completing review:", err.message);
     res.status(400).json({ status: "error", detail: err.message });

@@ -9,6 +9,7 @@ import clean_review_Router from "./routes/CleanerReviewRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import loginRoute from "./routes/loginApi.js";
 import clen_assign_router from "./routes/clen_assignRoutes.js";
+import userRouter from "./routes/userRoutes.js";
 // import { loginUser } from "./controller/authController.js";
 
 const app = express();
@@ -28,6 +29,7 @@ app.use("/api", configRouter);
 app.use("/api/cleaner-reviews", clean_review_Router);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api", clen_assign_router);
+app.use("/api", userRouter);
 app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => {

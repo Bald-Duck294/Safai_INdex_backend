@@ -1,8 +1,17 @@
 import prisma from "../config/prismaClient.mjs";
 import db from "../db.js";
 export async function getUser(req, res) {
+
+  console.log('in get user');
   try {
-    const users = await prisma.users.findMany();
+    const companyId = req.query;
+
+    console.log(companyId, "company_id");
+    const users = await prisma.users.findMany({
+      where: {
+        company_id: companyId
+      }
+    });
     console.log(users, "users");
 
     // Convert BigInt to string
@@ -51,56 +60,196 @@ export async function getUser(req, res) {
 //   }
 // };
 
+// export const getAllToilets = async (req, res) => {
+//   console.log("get all toilets");
+//   try {
+//     const allLocations = await prisma.locations.findMany({
+//       include: {
+//         hygiene_scores: {
+//           orderBy: { inspected_at: "desc" },
+//           take: 1,
+//           select: { score: true },
+//         },
+//       },
+//     });
+
+//     const allReviews = await prisma.review.findMany({
+//       where: {
+//         site_id: {
+//           in: allLocations.map((loc) => Number(loc.id)),
+//         },
+//       },
+//       select: {
+//         site_id: true,
+//         rating: true,
+//       },
+//     });
+
+//     // Group user ratings by site
+//     const reviewsBySite = {};
+//     allReviews.forEach((r) => {
+//       if (!reviewsBySite[r.site_id]) reviewsBySite[r.site_id] = [];
+//       if (r.rating !== null) reviewsBySite[r.site_id].push(r.rating);
+//     });
+
+//     const result = allLocations.map((loc) => {
+//       const userRatings = reviewsBySite[Number(loc.id)] || [];
+
+//       // Hygiene score → rating out of 10
+//       const hygieneScore = loc.hygiene_scores[0]?.score ?? null;
+//       const hygieneRating =
+//         hygieneScore !== null ? Number(hygieneScore) / 10 : null;
+
+//       const allRatings = [
+//         ...userRatings,
+//         ...(hygieneRating !== null ? [hygieneRating] : []),
+//       ];
+
+//       const ratingCount = allRatings.length;
+//       const averageRating =
+//         ratingCount > 0
+//           ? allRatings.reduce((sum, r) => sum + r, 0) / ratingCount
+//           : null;
+
+//       return {
+//         ...loc,
+//         id: loc.id.toString(),
+//         parent_id: loc.parent_id?.toString() || null,
+//         company_id: loc.company_id?.toString() || null,
+//         type_id: loc.type_id?.toString() || null,
+//         averageRating,
+//         ratingCount,
+//       };
+//     });
+
+//     console.log(result.slice*(0,6), "result");
+//     res.json(result);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Error fetching toilet locations");
+//   }
+// };
+
+
+// export const getAllToilets = async (req, res) => {
+//   console.log("get all toilets");
+//   try {
+//     const { company_id, type_id } = req.query; // get query params
+//     console.log(company_id, type_id, "all params comp and type id");
+//     // Build where clause dynamically
+//     const whereClause = {};
+//     if (company_id && !company_id == undefined) {
+//       console.log('in cmp id');
+//       whereClause.company_id = BigInt(company_id);
+//     }
+//     if (type_id) whereClause.type_id = BigInt(type_id);
+
+//     const allLocations = await prisma.locations.findMany({
+//       where: Object.keys(whereClause).length ? whereClause : undefined, // apply only if filters exist
+//       include: {
+//         hygiene_scores: {
+//           // orderBy: { inspected_at: "desc" },
+//           take: 1,
+//           select: { score: true },
+//         },
+//       },
+//     });
+//     console.log(allLocations?.slice(0, 6), 'alll loc');
+
+//     const allReviews = await prisma.review.findMany({
+//       where: {
+//         site_id: {
+//           in: allLocations.map((loc) => Number(loc.id)),
+//         },
+//       },
+//       select: {
+//         site_id: true,
+//         rating: true,
+//       },
+//     });
+
+//     // Group user ratings by site
+//     const reviewsBySite = {};
+//     allReviews.forEach((r) => {
+//       if (!reviewsBySite[r.site_id]) reviewsBySite[r.site_id] = [];
+//       if (r.rating !== null) reviewsBySite[r.site_id].push(r.rating);
+//     });
+
+//     const result = allLocations.map((loc) => {
+//       const userRatings = reviewsBySite[Number(loc.id)] || [];
+
+//       // Hygiene score → rating out of 10
+//       const hygieneScore = loc.hygiene_scores[0]?.score ?? null;
+//       const hygieneRating =
+//         hygieneScore !== null ? Number(hygieneScore) / 10 : null;
+
+//       const allRatings = [
+//         ...userRatings,
+//         ...(hygieneRating !== null ? [hygieneRating] : []),
+//       ];
+
+//       const ratingCount = allRatings.length;
+//       const averageRating =
+//         ratingCount > 0
+//           ? allRatings.reduce((sum, r) => sum + r, 0) / ratingCount
+//           : null;
+
+//       return {
+//         ...loc,
+//         id: loc.id.toString(),
+//         parent_id: loc.parent_id?.toString() || null,
+//         company_id: loc.company_id?.toString() || null,
+//         type_id: loc.type_id?.toString() || null,
+//         averageRating,
+//         ratingCount,
+//       };
+//     });
+
+//     console.log(result.slice(0, 6), "result");
+//     res.json(result);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Error fetching toilet locations");
+//   }
+// };
+
+
+
 export const getAllToilets = async (req, res) => {
   console.log("get all toilets");
   try {
+    const { company_id, type_id } = req.query; // get query params
+    console.log(company_id, type_id, "all types of ids");
+    // Build where clause dynamically
+    const whereClause = {};
+    if (company_id) {
+      whereClause.company_id = BigInt(company_id);
+    }
+    if (type_id) {
+      whereClause.type_id = BigInt(type_id);
+    }
+
     const allLocations = await prisma.locations.findMany({
+      where: Object.keys(whereClause).length ? whereClause : undefined,
       include: {
+        // Fetch ALL hygiene scores for each location
         hygiene_scores: {
-          orderBy: { inspected_at: "desc" },
-          take: 1,
           select: { score: true },
         },
       },
     });
 
-    const allReviews = await prisma.review.findMany({
-      where: {
-        site_id: {
-          in: allLocations.map((loc) => Number(loc.id)),
-        },
-      },
-      select: {
-        site_id: true,
-        rating: true,
-      },
-    });
-
-    // Group user ratings by site
-    const reviewsBySite = {};
-    allReviews.forEach((r) => {
-      if (!reviewsBySite[r.site_id]) reviewsBySite[r.site_id] = [];
-      if (r.rating !== null) reviewsBySite[r.site_id].push(r.rating);
-    });
-
     const result = allLocations.map((loc) => {
-      const userRatings = reviewsBySite[Number(loc.id)] || [];
+      // --- New Rating Calculation Logic ---
+      const hygieneScores = loc.hygiene_scores.map(hs => Number(hs.score));
+      const ratingCount = hygieneScores.length;
 
-      // Hygiene score → rating out of 10
-      const hygieneScore = loc.hygiene_scores[0]?.score ?? null;
-      const hygieneRating =
-        hygieneScore !== null ? Number(hygieneScore) / 10 : null;
-
-      const allRatings = [
-        ...userRatings,
-        ...(hygieneRating !== null ? [hygieneRating] : []),
-      ];
-
-      const ratingCount = allRatings.length;
-      const averageRating =
-        ratingCount > 0
-          ? allRatings.reduce((sum, r) => sum + r, 0) / ratingCount
-          : null;
+      let averageRating = null;
+      if (ratingCount > 0) {
+        const sumOfScores = hygieneScores.reduce((sum, score) => sum + score, 0);
+        // Calculate the direct average of the scores.
+        averageRating = sumOfScores / ratingCount;
+      }
 
       return {
         ...loc,
@@ -108,18 +257,21 @@ export const getAllToilets = async (req, res) => {
         parent_id: loc.parent_id?.toString() || null,
         company_id: loc.company_id?.toString() || null,
         type_id: loc.type_id?.toString() || null,
-        averageRating,
+        averageRating: averageRating ? parseFloat(averageRating.toFixed(2)) : null, // Format to 2 decimal places
         ratingCount,
+        hygiene_scores: undefined, // Remove the original hygiene_scores array from the final output
       };
     });
 
-    console.log(result.slice*(0,6), "result");
+    console.log(result.slice(0, 6), "result");
     res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching toilet locations");
   }
 };
+
+
 
 export const getToiletById = async (req, res) => {
   try {
@@ -159,12 +311,12 @@ export const getToiletById = async (req, res) => {
         ? hygieneScore >= 100
           ? 5
           : hygieneScore >= 80
-          ? 4
-          : hygieneScore >= 60
-          ? 3
-          : hygieneScore >= 40
-          ? 2
-          : 1
+            ? 4
+            : hygieneScore >= 60
+              ? 3
+              : hygieneScore >= 40
+                ? 2
+                : 1
         : null;
 
     const allRatings = [
@@ -642,7 +794,7 @@ export const getNearbyLocations = async (req, res) => {
     // }));
     // console.log(result , "results");
     // res.json(updatedResults);
-console.log(result , "data");
+    console.log(result, "data");
     res.json(result)
   } catch (error) {
     console.error("Error fetching nearby locations:", error);
