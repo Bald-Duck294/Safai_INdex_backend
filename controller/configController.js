@@ -58,6 +58,7 @@ export async function getConfigurationById(req, res) {
 
 // get the cofiguration by name
 export async function getConfigurationByName(req, res) {
+  console.log('Get config by name')
   const { name } = req.params;
   console.log(name, "name from the request");
 
@@ -71,7 +72,7 @@ export async function getConfigurationByName(req, res) {
   try {
     console.log(`Fetching configuration with name: ${name}`);
 
-    const config = await prisma.configurations.findUnique({
+    const config = await prisma.configurations.findMany({
       where: {
         name: name,
       },
