@@ -7,6 +7,9 @@ import path from "path";
 // =========================================================
 // 1️⃣ GET all cleaner reviews (with filters)
 // =========================================================
+
+const BASE_URL = process.env.BASE_URL || "https://safai-index-backend.onrender.com";
+
 export async function getCleanerReview(req, res) {
   console.log("request made");
 
@@ -101,14 +104,14 @@ export async function createCleanerReview(req, res) {
   try {
     const {
       name,
-      phone,
-      site_id,
-      remarks,
+      // phone,
+      location_id,
+      // remarks,
       latitude,
       longitude,
       address,
       cleaner_user_id,
-      task_ids,
+      tasks,
       initial_comment,
     } = req.body;
 
@@ -117,23 +120,23 @@ export async function createCleanerReview(req, res) {
       ? req.files.before_photo.map((f) => f.filename)
       : [];
 
-    const parsedTaskIds = Array.isArray(task_ids)
-      ? task_ids.map(String)
-      : task_ids
-      ? task_ids.split(",").map((id) => String(id).trim())
-      : [];
+    const parsedTaskIds = Array.isArray(tasks)
+      ? tasks.map(String)
+      : tasks
+        ? tasks.split(",").map((id) => String(id).trim())
+        : [];
 
     const review = await prisma.cleaner_review.create({
       data: {
         name,
-        phone,
-        site_id: site_id ? BigInt(site_id) : null,
-        remarks,
+        // phone,
+        location_id: location_id ? BigInt(location_id) : null,
+        // remarks,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         address,
         cleaner_user_id: cleaner_user_id ? BigInt(cleaner_user_id) : null,
-        task_id: parsedTaskIds,
+        tasks: parsedTaskIds,
         initial_comment: initial_comment || null,
         before_photo: beforePhotos,
         after_photo: [],
@@ -144,7 +147,7 @@ export async function createCleanerReview(req, res) {
     const serializedData = {
       ...review,
       id: review?.id.toString(),
-      site_id: review?.site_id?.toString(),
+      location_id: review?.location_id?.toString(),
       cleaner_user_id: review?.cleaner_user_id?.toString(),
     };
 
@@ -158,13 +161,94 @@ export async function createCleanerReview(req, res) {
 // =========================================================
 // 4️⃣ COMPLETE review (after photos + AI scoring)
 // =========================================================
+// export async function completeCleanerReview(req, res) {
+//   try {
+//     const { final_comment, id } = req.body;
+
+//     // ✅ Collect after photos
+//     const afterPhotos = req.files?.after_photo
+//       ? req.files.after_photo.map((f) => f.filename)
+//       : [];
+
+//     // Update DB
+//     const review = await prisma.cleaner_review.update({
+//       where: { id: BigInt(id) },
+//       data: {
+//         after_photo: afterPhotos,
+//         final_comment: final_comment || null,
+//         status: "completed",
+//       },
+//     });
+
+//     const serializedData = {
+//       ...review,
+//       id: review?.id.toString(),
+//       location_id: review?.location_id?.toString(),
+//       cleaner_user_id: review?.cleaner_user_id?.toString(),
+//     };
+
+//     // Send response immediately
+//     res.json({
+//       status: "success",
+//       message: "Review completed successfully",
+//       data: serializedData,
+//     });
+
+//     // ✅ AI scoring (background job)
+//     (async () => {
+//       try {
+//         const formData = new FormData();
+
+//         afterPhotos.forEach((photo) => {
+//           const filePath = path.join("uploads", photo);
+//           formData.append("images", fs.createReadStream(filePath));
+//         });
+
+//         const aiResponse = await axios.post(
+//           "https://pugarch-c-score-369586418873.europe-west1.run.app/predict",
+//           formData,
+//           { headers: { ...formData.getHeaders() } }
+//         );
+
+//         console.log(aiResponse.data, "AI response");
+
+//         // Save AI results
+//         for (const item of aiResponse.data) {
+//           await prisma.hygiene_scores.create({
+//             data: {
+//               location_id: review.location_id,
+//               score: item.score,
+//               details: item.metadata,
+//               image_url: item.filename
+//                 ? `http://your-server-domain/uploads/${item.filename}`
+//                 : null,
+//               inspected_at: new Date(),
+//               created_by: review.cleaner_user_id,
+//             },
+//           });
+//         }
+
+//         console.log("✅ Hygiene scores saved for review:", review.id);
+//       } catch (aiError) {
+//         console.error("AI Scoring failed:", aiError.message);
+//       }
+//     })();
+//   } catch (err) {
+//     console.error("Error completing review:", err.message);
+//     res.status(400).json({ status: "error", detail: err.message });
+//   }
+// }
+
+
+
+
 export async function completeCleanerReview(req, res) {
   try {
     const { final_comment, id } = req.body;
 
-    // ✅ Collect after photos
+    // ✅ Collect after photos and build absolute URLs
     const afterPhotos = req.files?.after_photo
-      ? req.files.after_photo.map((f) => f.filename)
+      ? req.files.after_photo.map((f) => `${BASE_URL}/uploads/${f.filename}`)
       : [];
 
     // Update DB
@@ -180,11 +264,10 @@ export async function completeCleanerReview(req, res) {
     const serializedData = {
       ...review,
       id: review?.id.toString(),
-      site_id: review?.site_id?.toString(),
+      location_id: review?.location_id?.toString(),
       cleaner_user_id: review?.cleaner_user_id?.toString(),
     };
 
-    // Send response immediately
     res.json({
       status: "success",
       message: "Review completed successfully",
@@ -194,10 +277,12 @@ export async function completeCleanerReview(req, res) {
     // ✅ AI scoring (background job)
     (async () => {
       try {
+        console.log('Ai scoring started')
         const formData = new FormData();
 
-        afterPhotos.forEach((photo) => {
-          const filePath = path.join("uploads", photo);
+        // append local file paths (not URLs) for AI service
+        req.files?.after_photo?.forEach((photo) => {
+          const filePath = path.join("uploads", photo.filename);
           formData.append("images", fs.createReadStream(filePath));
         });
 
@@ -213,11 +298,11 @@ export async function completeCleanerReview(req, res) {
         for (const item of aiResponse.data) {
           await prisma.hygiene_scores.create({
             data: {
-              location_id: review.site_id,
+              location_id: review.location_id,
               score: item.score,
               details: item.metadata,
               image_url: item.filename
-                ? `http://your-server-domain/uploads/${item.filename}`
+                ? `${BASE_URL}/uploads/${item.filename}`
                 : null,
               inspected_at: new Date(),
               created_by: review.cleaner_user_id,
