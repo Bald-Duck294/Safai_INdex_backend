@@ -19,8 +19,9 @@ app.use(express.json());
 app.use(
   cors({
     origin: [
-      "http://localhost:3000",
-      "https://safai-index-backend.onrender.com",
+      "*"
+      // "http://localhost:3000",
+      // "https://safai-index-backend.onrender.com",
     ], // allow frontend URLs
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
