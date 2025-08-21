@@ -10,19 +10,41 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import loginRoute from "./routes/loginApi.js";
 import clen_assign_router from "./routes/clen_assignRoutes.js";
 import userRouter from "./routes/userRoutes.js";
-// import { loginUser } from "./controller/authController.js";
 
 const app = express();
 app.use(express.json());
-app.use(cors());
 
-// app.use("/api", loginRoute11);
-// 🔑 Protect all /api routes
-app.use("/api", loginRoute);
+// ✅ Correct CORS setup (put before routes)
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:8100",       // Ionic dev
+  "capacitor://localhost",       // Capacitor native
+  "ionic://localhost",           // Ionic native
+  "https://safai-index-frontend.onrender.com", // your frontend (change if needed)
+];
 
-app.use("/api", verifyToken);
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS: " + origin));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
+// ✅ Preflight
+app.options("*", cors());
 
 // Routes
+app.use("/api", loginRoute);
+app.use("/api", verifyToken);
+
 app.use("/api", getLocationRoutes);
 app.use("/api", location_types_router);
 app.use("/api", configRouter);
@@ -30,6 +52,7 @@ app.use("/api/cleaner-reviews", clean_review_Router);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api", clen_assign_router);
 app.use("/api", userRouter);
+
 app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => {
@@ -37,6 +60,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(8000, () => {
-  console.log("Your server started at port 8000");
-  // console.log("Your constant token:", generateToken()); // print it for Postman
+  console.log("🚀 Server started at port 8000");
 });
