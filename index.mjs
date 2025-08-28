@@ -20,6 +20,8 @@ const allowedOrigins = [
   "http://localhost:8100",       // Ionic dev
   "capacitor://localhost",       // Capacitor native
   "ionic://localhost",           // Ionic native
+  "https://localhost",           // Ionic native
+  "http://localhost",           // Ionic native
   "https://safai-index-frontend.onrender.com", // your frontend (change if needed)
 ];
 
