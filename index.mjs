@@ -23,6 +23,7 @@ const allowedOrigins = [
   "https://localhost",           // Ionic native
   "http://localhost",           // Ionic native
   "https://safai-index-frontend.onrender.com", // your frontend (change if needed)
+  "*"
 ];
 
 app.use(
