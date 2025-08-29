@@ -17,13 +17,14 @@ app.use(express.json());
 // ✅ Correct CORS setup (put before routes)
 const allowedOrigins = [
   "http://localhost:3000",
-  "http://localhost:8100",       // Ionic dev
-  "capacitor://localhost",       // Capacitor native
-  "ionic://localhost",           // Ionic native
-  "https://localhost",           // Ionic native
-  "http://localhost",           // Ionic native
+  "http://localhost:8100", // Ionic dev
+  "capacitor://localhost", // Capacitor native
+  "ionic://localhost", // Ionic native
+  "https://localhost", // Ionic native
+  "http://localhost", // Ionic native
   "https://safai-index-frontend.onrender.com", // your frontend (change if needed)
-  "*"
+  "https://safai-index.vercel.app",
+  "*",
 ];
 
 app.use(
