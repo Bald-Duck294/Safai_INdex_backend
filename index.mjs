@@ -24,6 +24,7 @@ const allowedOrigins = [
   "http://localhost", // Ionic native
   "https://safai-index-frontend.onrender.com", // your frontend (change if needed)
   "https://safai-index.vercel.app",
+  "https://saaf-ai.vercel.app",
   "*",
 ];
 
