@@ -131,7 +131,11 @@ model users {
   activity_logs  activity_logs[]
   hygiene_scores hygiene_scores[]
   sessions       sessions[]
+  
+  // companies  
   companies      companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+ cleaner_assignments cleaner_assignments[]
+
 }
 
 model configurations {
@@ -202,5 +206,9 @@ model cleaner_assignments {
   released_on     DateTime?  @db.Timestamp(6)
   created_at      DateTime?  @default(now()) @db.Timestamp(6)
   updated_at      DateTime?  @default(now()) @db.Timestamp(6)
+  
+  // relations 
   locations       locations? @relation(fields: [location_id], references: [id], onDelete: Cascade, map: "fk_assignments_location")
+  cleaner_user    users      @relation(fields: [cleaner_user_id], references: [id])
+
 }

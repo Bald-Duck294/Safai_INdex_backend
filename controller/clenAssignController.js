@@ -3,17 +3,54 @@ import { serializeBigInt } from "../utils/serializer.js";
 
 /**
  * GET all cleaner assignments
- */
+//  */
+// export const getAllAssignments = async (req, res) => {
+//   try {
+//     const assignments = await prisma.cleaner_assignments.findMany({
+//       include: { locations: true },
+//       orderBy: { id: "asc" },
+//     });
+//     res.status(200).json({
+//       status: "success",
+//       message: "Assignments retrieved successfully.",
+//       data: serializeBigInt(assignments),
+//     });
+//   } catch (error) {
+//     console.error("Error fetching assignments:", error);
+//     res.status(500).json({ status: "error", message: "Internal Server Error" });
+//   }
+// };
+
 export const getAllAssignments = async (req, res) => {
   try {
+    // Fetch assignments with locations
     const assignments = await prisma.cleaner_assignments.findMany({
       include: { locations: true },
       orderBy: { id: "asc" },
     });
+
+    // Collect user IDs
+    const userIds = assignments.map((a) => a.cleaner_user_id);
+
+    // Fetch users
+    const users = await prisma.users.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, email: true }, // pick only what you need
+    });
+
+    // Map userId → user object
+    const userMap = Object.fromEntries(users.map((u) => [u.id.toString(), u]));
+
+    // Attach user to each assignment
+    const assignmentsWithUsers = assignments.map((a) => ({
+      ...a,
+      user: userMap[a.cleaner_user_id.toString()] || null,
+    }));
+
     res.status(200).json({
       status: "success",
       message: "Assignments retrieved successfully.",
-      data: serializeBigInt(assignments),
+      data: serializeBigInt(assignmentsWithUsers),
     });
   } catch (error) {
     console.error("Error fetching assignments:", error);
@@ -26,13 +63,11 @@ export const getAllAssignments = async (req, res) => {
  */
 // export const getAssignmentById = async (req, res) => {
 
-
 //   try {
 //     const id = parseInt(req.params.id);
 //     if (isNaN(id)) {
 //       return res.status(400).json({ status: "error", message: "Invalid ID provided." });
 //     }
-
 
 //     console.log(id , "id")
 
@@ -56,8 +91,6 @@ export const getAllAssignments = async (req, res) => {
 //   }
 // };
 
-
-
 /**
  * GET assignments by cleaner_user_id
  */
@@ -67,7 +100,7 @@ export const getAssignmentByCleanerUserId = async (req, res) => {
     if (isNaN(cleanerUserId)) {
       return res.status(400).json({
         status: "error",
-        message: "Invalid cleaner_user_id provided."
+        message: "Invalid cleaner_user_id provided.",
       });
     }
 
@@ -76,30 +109,28 @@ export const getAssignmentByCleanerUserId = async (req, res) => {
     const assignments = await prisma.cleaner_assignments.findMany({
       where: { cleaner_user_id: cleanerUserId },
       include: { locations: true },
-      orderBy: { id: "asc" }
+      orderBy: { id: "asc" },
     });
 
-    console.log(assignments.length, assignments.length === 0)
+    console.log(assignments.length, assignments.length === 0);
     if (assignments.length === 0) {
       return res.status(200).json({
         status: "success",
         message: "Query ran successfully but no assignments found.",
-        data: []
+        data: [],
       });
     }
 
     res.status(200).json({
       status: "success",
       message: "Assignments retrieved successfully.",
-      data: serializeBigInt(assignments)
+      data: serializeBigInt(assignments),
     });
-
   } catch (error) {
     console.error("Error fetching assignments by cleaner_user_id:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
-
 
 /**
  * CREATE new assignment
@@ -140,35 +171,50 @@ export const getAssignmentByCleanerUserId = async (req, res) => {
  * UPDATE assignment by id
  */
 
-
 export const createAssignment = async (req, res) => {
-
   console.log("in create assignmets");
   try {
     // Expect 'location_ids' to be an array of strings/numbers
     const { cleaner_user_id, company_id, location_ids, status } = req.body;
 
     // --- Validation ---
-    if (!cleaner_user_id || !company_id || !location_ids || !Array.isArray(location_ids) || location_ids.length === 0) {
-      return res.status(400).json({ status: "error", message: "Missing required fields: cleaner_user_id, company_id, and a non-empty array of location_ids." });
+    if (
+      !cleaner_user_id ||
+      !company_id ||
+      !location_ids ||
+      !Array.isArray(location_ids) ||
+      location_ids.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({
+          status: "error",
+          message:
+            "Missing required fields: cleaner_user_id, company_id, and a non-empty array of location_ids.",
+        });
     }
 
     // --- Data Preparation ---
     // Fetch the locations to get their actual names and type_ids
     const locations = await prisma.locations.findMany({
       where: {
-        id: { in: location_ids.map(id => BigInt(id)) }
+        id: { in: location_ids.map((id) => BigInt(id)) },
       },
-      select: { id: true, name: true, type_id: true }
+      select: { id: true, name: true, type_id: true },
     });
 
     // Ensure all requested locations were found
     if (locations.length !== location_ids.length) {
-      return res.status(404).json({ status: "error", message: "One or more selected locations could not be found." });
+      return res
+        .status(404)
+        .json({
+          status: "error",
+          message: "One or more selected locations could not be found.",
+        });
     }
 
     // Prepare the data for a bulk-creation database query
-    const assignmentsToCreate = locations.map(location => ({
+    const assignmentsToCreate = locations.map((location) => ({
       name: location.name, // Use the location's name as the assignment name
       cleaner_user_id: BigInt(cleaner_user_id),
       company_id: BigInt(company_id),
@@ -194,13 +240,13 @@ export const createAssignment = async (req, res) => {
   }
 };
 
-
-
 export const updateAssignment = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
-      return res.status(400).json({ status: "error", message: "Invalid ID provided." });
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid ID provided." });
     }
 
     const { name, cleaner_user_id, company_id, type_id, location_id, status } =
@@ -228,8 +274,10 @@ export const updateAssignment = async (req, res) => {
     });
   } catch (error) {
     // Handle cases where the record to update doesn't exist
-    if (error.code === 'P2025') {
-      return res.status(404).json({ status: "error", message: "Assignment not found." });
+    if (error.code === "P2025") {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Assignment not found." });
     }
     console.error("Error updating assignment:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
@@ -243,18 +291,24 @@ export const deleteAssignment = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
-      return res.status(400).json({ status: "error", message: "Invalid ID provided." });
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid ID provided." });
     }
 
     await prisma.cleaner_assignments.delete({
       where: { id },
     });
 
-    res.status(200).json({ status: "success", message: "Assignment deleted successfully." });
+    res
+      .status(200)
+      .json({ status: "success", message: "Assignment deleted successfully." });
   } catch (error) {
     // Handle cases where the record to delete doesn't exist
-    if (error.code === 'P2025') {
-      return res.status(404).json({ status: "error", message: "Assignment not found." });
+    if (error.code === "P2025") {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Assignment not found." });
     }
     console.error("Error deleting assignment:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
