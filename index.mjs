@@ -59,7 +59,7 @@ app.use("/api/cleaner-reviews", clean_review_Router);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api", clen_assign_router);
 app.use("/api", userRouter);
-app.use("/api/company", companyRouter);
+app.use("/api/companies", companyRouter);
 
 app.use("/uploads", express.static("uploads"));
 
