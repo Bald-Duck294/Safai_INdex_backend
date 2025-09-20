@@ -10,14 +10,17 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import loginRoute from "./routes/loginApi.js";
 import clen_assign_router from "./routes/clen_assignRoutes.js";
 import userRouter from "./routes/userRoutes.js";
-
+import companyRouter from "./routes/companyApiRoutes.js";
 const app = express();
 app.use(express.json());
 
 // ✅ Correct CORS setup (put before routes)
 const allowedOrigins = [
+  "*",
   "http://localhost:3000",
   "http://localhost:8100", // Ionic dev
+  "http://localhost:8101", // Ionic dev
+  "http://localhost:8102", // Ionic dev
   "capacitor://localhost", // Capacitor native
   "ionic://localhost", // Ionic native
   "https://localhost", // Ionic native
@@ -25,7 +28,6 @@ const allowedOrigins = [
   "https://safai-index-frontend.onrender.com", // your frontend (change if needed)
   "https://safai-index.vercel.app",
   "https://saaf-ai.vercel.app",
-  "*",
 ];
 
 app.use(
@@ -57,6 +59,7 @@ app.use("/api/cleaner-reviews", clean_review_Router);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api", clen_assign_router);
 app.use("/api", userRouter);
+app.use("/api/company", companyRouter);
 
 app.use("/uploads", express.static("uploads"));
 
