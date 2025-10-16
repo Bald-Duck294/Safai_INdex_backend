@@ -1,10 +1,11 @@
-import express from "express";
-import multer from "multer";
 
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
+
+// routes/reviewRoutes.js
+import express from "express";
 import prisma from "../config/prismaClient.mjs";
+// import { upload, processAndUploadImages } from "../middleware/imageUpload.js";
+import { upload, processAndUploadImages } from "../middlewares/imageUpload.js";
+
 const reviewRoutes = express.Router();
 
 function normalizeBigInt(obj) {
@@ -15,78 +16,128 @@ function normalizeBigInt(obj) {
   );
 }
 
-// Handle __dirname in ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ----------- POST /api/reviews/user-review ------------
+reviewRoutes.post(  
+  "/user-review",
+  upload.fields([{ name: 'images', maxCount: 5 }]), // Configure multer for multiple images
+  processAndUploadImages([
+    { fieldName: 'images', folder: 'user-reviews', maxCount: 5 }
+  ]),
+  async (req, res) => {
+    console.log("POST request made for user_review");
 
-// Local uploads folder setup
-const uploadDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+    try {
+      const body = req.body;
+      console.log("Received body:", body);
+      console.log("Uploaded files:", req.uploadedFiles);
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, unique + "-" + file.originalname);
-  },
-});
+      // Parse reason_ids safely
+      const reasonIds = JSON.parse(body.reason_ids || "[]");
 
-const upload = multer({ storage });
+      // Get Cloudinary URLs from middleware
+      const imageUrls = req.uploadedFiles?.images || [];
 
-// ----------- POST /api/user_review ------------
-reviewRoutes.post("/user-review", upload.array("images"), async (req, res) => {
-  console.log("post request made for user_review");
+      const lat = parseFloat(body.latitude);
+      const long = parseFloat(body.longitude);
+
+      // Create the review with Cloudinary image URLs
+      const review = await prisma.user_review.create({
+        data: {
+          name: body.name,
+          email: body.email,
+          phone: body.phone,
+          rating: parseFloat(body.rating),
+          reason_ids: reasonIds,
+          latitude: lat,
+          longitude: long,
+          description: body.description || "",
+          toilet_id: body.toilet_id ? BigInt(body.toilet_id) : null,
+          images: imageUrls, // Store Cloudinary URLs
+        },
+      });
+
+      console.log("Review created:", review);
+      res.status(201).json({
+        success: true,
+        data: normalizeBigInt(review),
+        message: "Review submitted successfully!"
+      });
+
+    } catch (error) {
+      console.error("Review creation failed:", error);
+      res.status(400).json({
+        success: false,
+        error: error.message,
+        message: "Failed to submit review"
+      });
+    }
+  }
+);
+
+// ----------- GET /api/reviews/ --------------
+reviewRoutes.get("/", async (req, res) => {
   try {
-    const body = req.body;
-    console.log("Received body:", body);
-    console.log("files", req.files);
+    const { toilet_id, limit = 50 } = req.query;
 
-    // Parse reason_ids safely
-    const reasonIds = JSON.parse(body.reason_ids || "[]");
-    const imageFilenames = req.files.map((file) => file.filename);
+    const whereClause = toilet_id ? { toilet_id: BigInt(toilet_id) } : {};
 
-    const lat = parseFloat(body.latitude);
-    const long = parseFloat(body.longitude);
-    const address = body.address;
-
-    // ✅ Step 2: Create the review with toilet_id
-    const review = await prisma.user_review.create({
-      data: {
-        name: body.name,
-        email: body.email,
-        phone: body.phone,
-        rating: parseFloat(body.rating),
-        reason_ids: reasonIds,
-        latitude: parseFloat(lat),
-        longitude: parseFloat(long),
-        description: body.description || "",
-        toilet_id: body.toilet_id,
-        // images: req.files?.map((file) => `/uploads/${file.filename}`) || [],
-        images: imageFilenames,
-      },
+    const user_reviews = await prisma.user_review.findMany({
+      where: whereClause,
+      orderBy: { created_at: "desc" },
+      take: parseInt(limit),
     });
 
-    console.log("Review created:", review);
-    res.status(201).json({ success: true, data: normalizeBigInt(review) });
+    console.log(user_reviews, "user_reviews");
+    // const serilizedUserReview = user_reviews.map((item)=>  ({
+    //   ...item ,
+    //   id: item?.id.toString(),
+    //   cleaner_user_id : item?.cleaner_user_id.toString(),
+    //   company_id : item?.company_id.toString ,
+    //   location_id : item?.location_id.toString()
+    // }))
+
+    res.json({
+      success: true,
+      data: normalizeBigInt(user_reviews),
+      count: user_reviews.length
+    });
+
   } catch (error) {
-    console.error("Review creation failed:", error);
-    res.status(400).json({ success: false, error: error.message });
+    console.error("Error fetching reviews:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch user reviews"
+    });
   }
 });
 
-// ----------- GET /api/user_review --------------//
-reviewRoutes.get("/", async (req, res) => {
+// ----------- GET /api/reviews/:id --------------
+reviewRoutes.get("/:id", async (req, res) => {
   try {
-    const user_review = await prisma.user_review.findMany({
-      orderBy: { created_at: "desc" },
+    const { id } = req.params;
+
+    const review = await prisma.user_review.findUnique({
+      where: { id: BigInt(id) },
     });
 
-    res.json({ success: true, data: normalizeBigInt(user_review) }); // ✅ FIX HERE
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        error: "Review not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: normalizeBigInt(review)
+    });
+
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ success: false, error: "Failed to fetch user_review" });
+    console.error("Error fetching review:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch review"
+    });
   }
 });
 
